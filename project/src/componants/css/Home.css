@@ -1,0 +1,30 @@
+ 
+
+.search-bar-container {
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    height: 500px;
+   align-content: center;
+  }
+  
+  .search-bar-container input {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  .search-bar-container button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .sbefore{
+    display: none;
+  }
+  .safter{
+    display: flex;
+  }

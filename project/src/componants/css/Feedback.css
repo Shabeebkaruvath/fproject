@@ -1,0 +1,47 @@
+.feedback {
+    margin-top: 30px;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    width: 100%;
+  
+  }
+  
+  .feedback input[type="text"] {
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    width: calc(100% - 26px);
+    box-sizing: border-box;
+    font-size: 16px;
+    transition: border-color 0.3s;
+  }
+  
+  .feedback input[type="text"]:focus {
+    border-color: #ffffff;
+    outline: none;
+  }
+  
+  .feedback button[type="submit"] {
+    padding: 12px;
+    background-color: #000000;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+  }
+  
+  .feedback button[type="submit"]:hover {
+    background-color: #000000;
+  }
+  
+  @media (max-width: 600px) {
+    .feedback {
+      width: 90%;
+    }
+  }
+  

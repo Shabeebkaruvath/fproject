@@ -1,0 +1,38 @@
+.fav {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .fav table {
+    width: 100%;
+    border-collapse: collapse;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .fav h5 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 15px;
+  }
+  
+  .fav th, .fav td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+  }
+  
+  .fav th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+  }
+  
+  @media (max-width: 600px) {
+    .fav table {
+      font-size: 14px;
+    }
+  
+    .fav th, .fav td {
+      padding: 8px;
+    }
+  }
