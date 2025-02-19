@@ -1,6 +1,8 @@
 import React from "react";
-import { ShoppingCart, Star, Edit } from "lucide-react";
-import { Link } from "react-router-dom";
+import { ShoppingCart, LogOut, Edit } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { signOut } from 'firebase/auth';
+import { auth } from '../../firebase/firebase';
 
 function Profile() {
   const user = {
@@ -9,35 +11,20 @@ function Profile() {
     number: "1234567890",
     avatarUrl: "https://img.icons8.com/?size=100&id=z-JBA_KtSkxG&format=png&color=000000",
   };
-
-
-  const ProfileAction = ({ icon: Icon, to, label }) => (
-    <Link 
-      to={to} 
-      className="
-        flex 
-        items-center 
-        space-x-2 
-        p-3 
-        bg-blue-50 
-        hover:bg-blue-100 
-        rounded-lg 
-        transition-colors 
-        duration-300 
-        text-[#2e4156]
-         hover:bg-[#2e4156]  
-          hover:text-[#fff]
-      "
-    >
-      <Icon className="text-[#64b5f6]  hover:text-[#fff]" size={24} />
-      <span className="font-medium">{label}</span>
-    </Link>
-  );
+  const navigate = useNavigate();
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate('/login');  // Redirect to login page after logout
+    } catch (error) {
+      console.error('Error signing out:', error);
+      // You might want to show an error notification to the user here
+    }
+  };
 
   return (
-    <div className="min-h-screen  flex items-center justify-center p-4 bg-[#e6e6e6] ">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#e6e6e6]">
       <div className="
-        
         shadow-lg 
         rounded-2xl 
         w-full 
@@ -69,7 +56,7 @@ function Profile() {
             <h2 className="
               text-2xl 
               font-bold 
-             text-[#2e4156]
+              text-[#2e4156]
               mb-2
             ">
               {user.name}
@@ -110,17 +97,47 @@ function Profile() {
         </div>
 
         {/* Profile Actions */}
-        <div className="grid grid-cols-2 gap-4 ">
-          <ProfileAction 
-            icon={ShoppingCart} 
+        <div className="grid grid-cols-2 gap-4">
+          <Link 
             to="/cart" 
-            label="Cart" 
-          />
-          <ProfileAction 
-            icon={Star} 
-            to="/favorite" 
-            label="Favorites" 
-          />
+            className="
+              flex 
+              items-center 
+              space-x-2 
+              p-3 
+              bg-blue-50 
+              hover:bg-blue-100 
+              rounded-lg 
+              transition-colors 
+              duration-300 
+              text-[#2e4156]
+              hover:bg-[#2e4156]  
+              hover:text-[#fff]
+            "
+          >
+            <ShoppingCart className="text-[#64b5f6] hover:text-[#fff]" size={24} />
+            <span className="font-medium">Cart</span>
+          </Link>
+          <button 
+            onClick={handleLogout} 
+            className="
+              flex 
+              items-center 
+              space-x-2 
+              p-3 
+              bg-blue-50 
+              hover:bg-blue-100 
+              rounded-lg 
+              transition-colors 
+              duration-300 
+              text-[#2e4156]
+              hover:bg-[#2e4156]  
+              hover:text-[#fff]
+            "
+          >
+            <LogOut className="text-[#64b5f6] hover:text-[#fff]" size={24} />
+            <span className="font-medium">LogOut</span>
+          </button>
         </div>
       </div>
     </div>

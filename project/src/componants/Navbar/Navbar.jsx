@@ -1,73 +1,144 @@
-import React, { useState } from 'react';
-import { Home, User, X, AlignJustify, MessageCircle, ShoppingCart } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Home, User, MessageCircle, ShoppingCart, Activity } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 
 const Navbar = () => {
-  const [isOpen, setIsOpen] = useState(false);
-
+  const [isScrolled, setIsScrolled] = useState(false);
+  const location = useLocation();
+  
   const navItems = [
     { to: '/', icon: Home, label: 'Home' },
     { to: '/profile', icon: User, label: 'Profile' },
+    { to: '/analytics', icon: Activity, label: 'Price History' },
     { to: '/feedback', icon: MessageCircle, label: 'Feedback' },
   ];
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
     <>
-      <nav className="fixed top-0 left-0 w-full bg-[#2e4156] shadow-md z-50">
-        <div className="container mx-auto flex justify-between items-center p-4">
-          <Link 
-            to="/" 
-            className="text-3xl text-[#d4d8dd] font-['Open_Sans'] flex items-center gap-2 hover:text-white transition-colors"
-          >
-            <span>ShopNest</span>
-            <ShoppingCart size={30}/>
-          </Link>
-
-          <button 
-            className="md:hidden text-white hover:text-gray-300 transition-colors"
-            onClick={() => setIsOpen(!isOpen)}
-            aria-label="Toggle menu"
-          >
-            {isOpen ? <X size={24} /> : <AlignJustify size={24} />}
-          </button>
-
-          <div 
-            className={`
-              fixed md:static top-[72px] left-0
-              w-full md:w-auto 
-              bg-[#2e4156] md:bg-transparent
-              shadow-md md:shadow-none
-              transition-transform duration-300 ease-in-out
-              ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-              z-40
-            `}
-          >
-            <div className="container mx-auto md:flex md:items-center md:gap-4 p-4 md:p-0">
+      {/* Desktop Navbar */}
+      <nav className={`
+        fixed top-0 left-0 w-full z-50 transition-all duration-300
+        ${isScrolled ? 'bg-black/80 backdrop-blur-lg' : 'bg-[#2e4156]'}
+        hidden md:block
+      `}>
+        <div className="container mx-auto">
+          <div className="flex justify-between items-center p-4">
+            <Link
+              to="/"
+              className="text-3xl text-white font-['Inter'] flex items-center gap-3 group"
+            >
+              <span className="relative">
+                ShopNest
+                 
+              </span>
+              <ShoppingCart className="transform group-hover:rotate-12 transition-transform duration-200" 
+                size={30}/>
+            </Link>
+            
+            <div className="flex items-center gap-6">
               {navItems.map(({ to, icon: Icon, label }) => (
                 <Link
                   key={to}
                   to={to}
-                  onClick={() => setIsOpen(false)}
-                  className="
-                    block md:inline-flex items-center
-                    p-3 md:p-2
-                    mb-2 md:mb-0
-                    text-white hover:text-gray-300
-                    hover:bg-[#3a4f68] md:hover:bg-transparent
-                    rounded transition-colors
-                    w-full md:w-auto
-                  "
+                  className={`
+                    relative group flex items-center gap-2 px-4 py-2
+                    text-gray-200 hover:text-white transition-colors duration-300
+                    ${location.pathname === to ? 'text-white' : ''}
+                  `}
                 >
-                  <Icon className="mr-2" size={20} />
-                  {label}
+                  <Icon className={`
+                    transform group-hover:scale-110 transition-all duration-300
+                    ${location.pathname === to ? 'text-blue-400' : ''}
+                  `} size={20} />
+                  <span className="relative">
+                    {label}
+                    <span className={`
+                      absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400
+                      group-hover:w-full transition-all duration-300
+                      ${location.pathname === to ? 'w-full' : ''}
+                    `}></span>
+                  </span>
                 </Link>
               ))}
             </div>
           </div>
         </div>
       </nav>
-      {/* Spacer div to prevent content from going under navbar */}
+
+      {/* Mobile Top Bar */}
+      <div className={`
+        md:hidden fixed top-0 left-0 w-full z-50 
+        transition-all duration-300
+        ${isScrolled ? 'bg-black/80 backdrop-blur-lg' : 'bg-[#2e4156]'}
+      `}>
+        <div className="flex justify-center items-center p-4">
+          <Link
+            to="/"
+            className="text-2xl text-white font-['Inter'] flex items-center gap-2 group"
+          >
+            <span>ShopNest</span>
+            <ShoppingCart className="transform group-hover:rotate-12 transition-transform duration-300" 
+              size={24}/>
+          </Link>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-black/80 backdrop-blur-lg z-50">
+        <div className="grid grid-cols-4 gap-1">
+          {navItems.map(({ to, icon: Icon, label }) => {
+            const isActive = location.pathname === to;
+            return (
+              <Link
+                key={to}
+                to={to}
+                className={`
+                  relative flex flex-col items-center justify-center
+                  py-3 px-2 group
+                  ${isActive ? 'text-blue-400' : 'text-gray-400'}
+                `}
+              >
+                <div className={`
+                  absolute -top-3 left-1/2 transform -translate-x-1/2
+                  w-12 h-12 bg-blue-500/10 rounded-full scale-0
+                  group-hover:scale-100 transition-transform duration-300
+                  ${isActive ? 'scale-100' : ''}
+                `}></div>
+                <Icon size={24} className={`
+                  relative transform transition-all duration-300
+                  group-hover:scale-110 group-hover:-translate-y-1
+                  ${isActive ? 'scale-110 -translate-y-1' : ''}
+                `} />
+                <span className={`
+                  mt-1 text-xs transform transition-all duration-300
+                  group-hover:scale-110 group-hover:-translate-y-1
+                  ${isActive ? 'scale-110 -translate-y-1' : ''}
+                `}>
+                  {label}
+                </span>
+                <div className={`
+                  absolute bottom-0 left-1/2 transform -translate-x-1/2
+                  w-12 h-0.5 bg-blue-400 rounded-full scale-x-0
+                  group-hover:scale-x-100 transition-transform duration-300
+                  ${isActive ? 'scale-x-100' : ''}
+                `}></div>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* Spacer divs */}
       <div className="h-[72px]"></div>
+      <div className="md:hidden h-[72px]"></div>
     </>
   );
 };

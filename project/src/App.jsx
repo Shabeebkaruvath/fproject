@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { auth } from './firebase/firebase'; // Import Firebase auth
+import { onAuthStateChanged } from 'firebase/auth'; // Import onAuthStateChanged
 import './App.css';
 import Home from './componants/Home/Home';
 import Navbar from './componants/Navbar/Navbar';
@@ -8,10 +10,29 @@ import Cart from './componants/Profile/Cart';
 import Feedback from './componants/Feedback/Feedback';
 import Login from './componants/login/Login';
 import Register from './componants/login/Register';
- 
 
 function App() {
-  const [statelogin, setStatelogin] = useState(false);  // Manage login state (false by default)
+  const [statelogin, setStatelogin] = useState(false); // Manage login state
+  const [loading, setLoading] = useState(true); // Add a loading state
+
+  // Use useEffect to listen for authentication state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setStatelogin(true); // User is logged in
+      } else {
+        setStatelogin(false); // User is logged out
+      }
+      setLoading(false); // Set loading to false once the auth state is determined
+    });
+
+    return () => unsubscribe(); // Cleanup the observer on unmount
+  }, []);
+
+  // Show a loading spinner while checking auth state
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <Router>
@@ -34,7 +55,7 @@ function AppContent({ statelogin, setStatelogin }) {
         <Route path="/profile" element={statelogin ? <Profile /> : <Navigate to="/login" />} />
         <Route path="/feedback" element={statelogin ? <Feedback /> : <Navigate to="/login" />} />
         <Route path="/cart" element={statelogin ? <Cart /> : <Navigate to="/login" />} />
-    
+        <Route path="/analytics" element={statelogin ? <Cart /> : <Navigate to="/login" />} />
 
         {/* Public routes */}
         <Route path="/login" element={<Login setStatelogin={setStatelogin} />} />

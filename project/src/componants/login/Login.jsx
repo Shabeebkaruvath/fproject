@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
 import { auth } from '../../firebase/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { useNavigate,Link} from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
- 
- 
 
-
-const Login = ({ setStatelogin }) => {  // Accept setStatelogin from props
+const Login = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -15,6 +12,7 @@ const Login = ({ setStatelogin }) => {  // Accept setStatelogin from props
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [show, setShow] = useState(true);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -30,18 +28,14 @@ const Login = ({ setStatelogin }) => {  // Accept setStatelogin from props
     setIsLoading(true);
 
     try {
-      // 1. Sign in the user with email and password
       const userCredential = await signInWithEmailAndPassword(
         auth,
         formData.email,
         formData.password
       );
 
-      // 2. Redirect the user after successful login
-       
-      console.log(userCredential)
-      setStatelogin(true);  // Update the login state in App.js
-      navigate('/');  // Navigate to a protected route (change as needed)
+      console.log(userCredential);
+      navigate('/');  // Redirect to home page after successful login
 
     } catch (err) {
       let errorMessage = 'Login failed. Please try again.';
@@ -50,8 +44,8 @@ const Login = ({ setStatelogin }) => {  // Accept setStatelogin from props
         case 'auth/user-not-found':
           errorMessage = 'No user found with this email.';
           break;
-          case 'auth/network-request-failed':
-            errorMessage = 'Dont have proper internet connection.';
+        case 'auth/network-request-failed':
+          errorMessage = 'Dont have proper internet connection.';
           break;
         case 'auth/wrong-password':
           errorMessage = 'Incorrect password.';
@@ -64,13 +58,10 @@ const Login = ({ setStatelogin }) => {  // Accept setStatelogin from props
       }
 
       setError(errorMessage);
-     
     } finally {
       setIsLoading(false);
     }
   };
-  const [show,setShow]=useState(true);
-   
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#faebee] to-white py-12 px-4 sm:px-6 lg:px-8">
@@ -132,11 +123,6 @@ const Login = ({ setStatelogin }) => {  // Accept setStatelogin from props
                 </button>
               </div>
             </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-             
-             
           </div>
 
           <button

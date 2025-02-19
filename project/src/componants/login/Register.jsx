@@ -2,18 +2,18 @@ import React, { useState } from 'react';
 import { auth, db } from '../../firebase/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 
 const RegisterForm = ({ setStatelogin }) => {
   const navigate = useNavigate();
   const [show, setShow] = useState(true);
   const [cshow, setCshow] = useState(true);
-  
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -21,9 +21,9 @@ const RegisterForm = ({ setStatelogin }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -33,33 +33,37 @@ const RegisterForm = ({ setStatelogin }) => {
     setIsLoading(true);
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match.");
+      setError('Passwords do not match.');
       setIsLoading(false);
       return;
     }
 
     try {
+      // 1. Create user with email and password
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         formData.email,
         formData.password
       );
 
+      // 2. Create a user document in Firestore
       const userDoc = {
         email: formData.email,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         userId: userCredential.user.uid,
         isActive: true,
-        role: 'user'
+        role: 'user',
       };
 
       await setDoc(doc(db, 'users', userCredential.user.uid), userDoc);
-      setFormData({ email: '', password: '', confirmPassword: '' });
-      alert('Registration successful!');
-      setStatelogin=true
-      navigate('/');
 
+      // 3. Clear form data
+      setFormData({ email: '', password: '', confirmPassword: '' });
+
+      // 4. Update login state and navigate to home page
+      setStatelogin(true); // Update the login state in App.js
+      navigate('/'); // Redirect to home page
     } catch (err) {
       let errorMessage = 'Registration failed. Please try again.';
 
@@ -104,7 +108,10 @@ const RegisterForm = ({ setStatelogin }) => {
 
           <div className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-[#0b1956] mb-1">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-[#0b1956] mb-1"
+              >
                 Email address
               </label>
               <input
@@ -120,7 +127,10 @@ const RegisterForm = ({ setStatelogin }) => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-[#0b1956] mb-1">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-[#0b1956] mb-1"
+              >
                 Password
               </label>
               <div className="relative">
@@ -145,7 +155,10 @@ const RegisterForm = ({ setStatelogin }) => {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#0b1956] mb-1">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-[#0b1956] mb-1"
+              >
                 Confirm Password
               </label>
               <div className="relative">
@@ -177,9 +190,25 @@ const RegisterForm = ({ setStatelogin }) => {
           >
             {isLoading ? (
               <span className="flex items-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
                 Creating account...
               </span>
@@ -190,7 +219,10 @@ const RegisterForm = ({ setStatelogin }) => {
 
           <div className="text-center text-sm text-[#0b1956]/70">
             Already have an account?{' '}
-            <Link to="/login" className="font-medium text-[#0b1956] hover:text-[#0b1956]/80 transition-colors duration-200">
+            <Link
+              to="/login"
+              className="font-medium text-[#0b1956] hover:text-[#0b1956]/80 transition-colors duration-200"
+            >
               Sign in
             </Link>
           </div>
