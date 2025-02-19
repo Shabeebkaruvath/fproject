@@ -26,7 +26,7 @@ const Navbar = () => {
       {/* Desktop Navbar */}
       <nav className={`
         fixed top-0 left-0 w-full z-50 transition-all duration-300
-        ${isScrolled ? 'bg-black/80 backdrop-blur-lg' : 'bg-[#2e4156]'}
+        ${isScrolled ? 'bg-black/80 backdrop-blur-lg' : 'bg-black/75'}
         hidden md:block
       `}>
         <div className="container mx-auto">

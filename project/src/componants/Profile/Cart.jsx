@@ -18,7 +18,7 @@ function Cart() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 p-4 flex justify-center items-center">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#1a1a2e] to-[#16213e]">
       <div className="
         bg-white 
         shadow-lg 

@@ -7,10 +7,11 @@ import { Eye, EyeOff } from 'lucide-react';
 
 const RegisterForm = ({ setStatelogin }) => {
   const navigate = useNavigate();
-  const [show, setShow] = useState(true);
-  const [cshow, setCshow] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [formData, setFormData] = useState({
+    fname: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -32,6 +33,13 @@ const RegisterForm = ({ setStatelogin }) => {
     setError(null);
     setIsLoading(true);
 
+    // Validate form fields
+    if (!formData.fname.trim()) {
+      setError('Full name is required.');
+      setIsLoading(false);
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match.');
       setIsLoading(false);
@@ -48,6 +56,7 @@ const RegisterForm = ({ setStatelogin }) => {
 
       // 2. Create a user document in Firestore
       const userDoc = {
+        fullName: formData.fname,
         email: formData.email,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -59,10 +68,10 @@ const RegisterForm = ({ setStatelogin }) => {
       await setDoc(doc(db, 'users', userCredential.user.uid), userDoc);
 
       // 3. Clear form data
-      setFormData({ email: '', password: '', confirmPassword: '' });
+      setFormData({ fname: '', email: '', password: '', confirmPassword: '' });
 
       // 4. Update login state and navigate to home page
-      setStatelogin(true); // Update the login state in App.js
+      setStatelogin=true; // Update the login state in App.js
       navigate('/'); // Redirect to home page
     } catch (err) {
       let errorMessage = 'Registration failed. Please try again.';
@@ -109,10 +118,29 @@ const RegisterForm = ({ setStatelogin }) => {
           <div className="space-y-5">
             <div>
               <label
+                htmlFor="fname"
+                className="block text-sm font-medium text-[#0b1956] mb-1"
+              >
+                UserName
+              </label>
+              <input
+                id="fname"
+                type="text"
+                name="fname"
+                placeholder="Enter your username"
+                value={formData.fname}
+                onChange={handleChange}
+                disabled={isLoading}
+                className="appearance-none rounded-lg relative block w-full px-4 py-3 border border-[#0b1956]/20 placeholder-[#0b1956]/50 text-[#0b1956] focus:outline-none focus:ring-2 focus:ring-[#0b1956]/30 focus:border-[#0b1956] bg-[#faf3eb]/30 transition-colors duration-200"
+              />
+            </div>
+
+            <div>
+              <label
                 htmlFor="email"
                 className="block text-sm font-medium text-[#0b1956] mb-1"
               >
-                Email address
+                Email Address
               </label>
               <input
                 id="email"
@@ -136,7 +164,7 @@ const RegisterForm = ({ setStatelogin }) => {
               <div className="relative">
                 <input
                   id="password"
-                  type={show ? 'password' : 'text'}
+                  type={showPassword ? 'text' : 'password'}
                   name="password"
                   placeholder="Create a strong password"
                   value={formData.password}
@@ -146,10 +174,10 @@ const RegisterForm = ({ setStatelogin }) => {
                 />
                 <button
                   type="button"
-                  onClick={() => setShow(!show)}
+                  onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#0b1956]/50 hover:text-[#0b1956]"
                 >
-                  {show ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
             </div>
@@ -164,7 +192,7 @@ const RegisterForm = ({ setStatelogin }) => {
               <div className="relative">
                 <input
                   id="confirmPassword"
-                  type={cshow ? 'password' : 'text'}
+                  type={showConfirmPassword ? 'text' : 'password'}
                   name="confirmPassword"
                   placeholder="Confirm your password"
                   value={formData.confirmPassword}
@@ -174,10 +202,10 @@ const RegisterForm = ({ setStatelogin }) => {
                 />
                 <button
                   type="button"
-                  onClick={() => setCshow(!cshow)}
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#0b1956]/50 hover:text-[#0b1956]"
                 >
-                  {cshow ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
             </div>
