@@ -19,7 +19,7 @@ const Navbar = () => {
             to="/" 
             className="text-3xl text-[#d4d8dd] font-['Open_Sans'] flex items-center gap-2 hover:text-white transition-colors"
           >
-            <span>shop</span>
+            <span>ShopNest</span>
             <ShoppingCart size={30}/>
           </Link>
 
