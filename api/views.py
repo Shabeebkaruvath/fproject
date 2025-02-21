@@ -1,10 +1,14 @@
-import requests
-from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-import urllib.parse  # to parse URLs
-import re
- 
+import urllib.parse
+import time
+from django.core.cache import cache
+
  
 
 @api_view(['GET'])
@@ -13,43 +17,74 @@ def get_products(request):
     if not query:
         return Response({"error": "No query provided"}, status=400)
     
-    url = f"https://www.google.com/search?tbm=shop&hl=en&psb=1&q={query}"
+    # Set up Chrome options
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')  # Run in headless mode
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
     
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
-    
-    response = requests.get(url, headers=headers)
-    if response.status_code != 200:
-        return Response({"error": "Failed to fetch data"}, status=500)
-    
-    soup = BeautifulSoup(response.text, "html.parser")
-    products = []
-
-    for item in soup.select(".sh-dgr__content"):
-        # Get product name
-        name = item.select_one(".tAxDx").text if item.select_one(".tAxDx") else "No name"
+    try:
+        # Initialize the driver
+        driver = webdriver.Chrome(options=chrome_options)
         
-        # Get price
-        price = item.select_one(".a8Pemb").text if item.select_one(".a8Pemb") else "No price"
+        # Construct and visit URL
+        url = f"https://www.google.com/search?tbm=shop&hl=en&psb=1&q={urllib.parse.quote(query)}"
+        driver.get(url)
         
-        # Get product link
-        link_tag = item.select_one("a")
-        link = link_tag["href"] if link_tag else ""
-        if link.startswith("/url?q="):
-            link = urllib.parse.unquote(link[7:])
+        # Wait for products to load
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "sh-dgr__content"))
+        )
         
-        # Get image URL - directly from the img tag inside ArOc1c div
-        image = ""
-        img_tag = item.select_one("div.ArOc1c img[role='presentation']")
-        if img_tag and "src" in img_tag.attrs:
-            image = img_tag["src"]
-
-        products.append({
-            "name": name,
-            "price": price,
-            "image": image,
-            "buy_url": "https://www.google.com" + link if link.startswith("/") else link,
-        })
-    
-    return Response(products)
+        # Small delay to ensure images are loaded
+        time.sleep(2)
+        
+        products = []
+        
+        # Find all product containers
+        items = driver.find_elements(By.CLASS_NAME, "sh-dgr__content")
+        
+        for item in items:
+            try:
+                # Get product name
+                name = item.find_element(By.CLASS_NAME, "tAxDx").text
+            except:
+                name = "No name"
+                
+            try:
+                # Get price
+                price = item.find_element(By.CLASS_NAME, "a8Pemb").text
+            except:
+                price = "No price"
+                
+            try:
+                # Get product link
+                link = item.find_element(By.TAG_NAME, "a").get_attribute("href")
+                if link and link.startswith("/url?q="):
+                    link = urllib.parse.unquote(link[7:])
+            except:
+                link = ""
+                
+            try:
+                # Get image URL
+                img = item.find_element(
+                    By.CSS_SELECTOR, 
+                    "div.ArOc1c img[role='presentation']"
+                ).get_attribute("src")
+            except:
+                img = ""
+                
+            products.append({
+                "name": name,
+                "price": price,
+                "image": img,
+                "buy_url": link
+            })
+        
+        driver.quit()
+        return Response(products)
+        
+    except Exception as e:
+        if 'driver' in locals():
+            driver.quit()
+        return Response({"error": str(e)}, status=500)

@@ -27,6 +27,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+SELENIUM_TIMEOUT = 10  # seconds
 
 # Application definition
 

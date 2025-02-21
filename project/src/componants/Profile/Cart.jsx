@@ -2,7 +2,6 @@ import React from 'react';
 import { ShoppingCart, Star, Trash2 } from 'lucide-react';
 
 function Cart() {
-  // Sample product data (you might want to use state or fetch from an API)
   const products = [
     {
       id: 1,
@@ -18,20 +17,11 @@ function Cart() {
   ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#1a1a2e] to-[#16213e]">
-      <div className="
-        bg-white 
-        shadow-lg 
-        rounded-2xl 
-        w-full 
-        max-w-4xl 
-        p-6 
-        border 
-        border-blue-100
-      ">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#0f0c29] to-[#302b63] via-[#24243e]">
+      <div className="bg-gray-800 shadow-2xl rounded-3xl w-full max-w-5xl p-8 border border-blue-200">
         <div className="flex items-center space-x-3 mb-6">
-          <ShoppingCart className="text-blue-500" size={32} />
-          <h2 className="text-2xl font-bold text-blue-800">
+          <ShoppingCart className="text-blue-400" size={32} />
+          <h2 className="text-3xl font-bold text-white">
             Your Cart
           </h2>
         </div>
@@ -39,64 +29,43 @@ function Cart() {
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-blue-50 text-blue-700">
-                <th className="p-3 text-left">Product</th>
-                <th className="p-3 text-left">Brand</th>
-                <th className="p-3 text-left">Type</th>
-                <th className="p-3 text-left">Layout</th>
-                <th className="p-3 text-left">Price</th>
-                <th className="p-3 text-left">Rating</th>
-                <th className="p-3 text-left">Actions</th>
+              <tr className="bg-blue-900 text-white">
+                <th className="p-4 text-left">Product</th>
+                <th className="p-4 text-left">Brand</th>
+                <th className="p-4 text-left">Type</th>
+                <th className="p-4 text-left">Layout</th>
+                <th className="p-4 text-left">Price</th>
+                <th className="p-4 text-left">Rating</th>
+                <th className="p-4 text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
               {products.map((product) => (
                 <tr 
                   key={product.id} 
-                  className="
-                    border-b 
-                    border-blue-100 
-                    hover:bg-blue-50 
-                    transition-colors 
-                    duration-300
-                  "
+                  className="border-b border-blue-700 hover:bg-blue-800 transition-colors duration-300"
                 >
-                  <td className="p-3 flex items-center space-x-3">
+                  <td className="p-4 flex items-center space-x-3">
                     <img 
                       src={product.image} 
                       alt={product.name} 
-                      className="
-                        w-12 
-                        h-12 
-                        rounded-full 
-                        object-cover 
-                        border-2 
-                        border-blue-200
-                      "
+                      className="w-16 h-16 rounded-lg object-cover border-2 border-blue-500"
                     />
-                    <span className="font-medium">{product.name}</span>
+                    <span className="font-medium text-white">{product.name}</span>
                   </td>
-                  <td className="p-3">{product.brand}</td>
-                  <td className="p-3">{product.type}</td>
-                  <td className="p-3">{product.layout}</td>
-                  <td className="p-3 font-semibold text-blue-600">${product.price}</td>
-                  <td className="p-3">
-                    <div className="flex items-center space-x-1 text-yellow-500">
+                  <td className="p-4 text-gray-300">{product.brand}</td>
+                  <td className="p-4 text-gray-300">{product.type}</td>
+                  <td className="p-4 text-gray-300">{product.layout}</td>
+                  <td className="p-4 font-semibold text-blue-400">${product.price}</td>
+                  <td className="p-4">
+                    <div className="flex items-center space-x-1 text-yellow-400">
                       <Star size={16} fill="currentColor" />
                       <span>{product.rating}</span>
                     </div>
                   </td>
-                  <td className="p-3">
+                  <td className="p-4">
                     <button 
-                      className="
-                        text-red-500 
-                        hover:text-red-600 
-                        hover:bg-red-50 
-                        p-2 
-                        rounded-full 
-                        transition-colors 
-                        duration-300
-                      "
+                      className="text-red-400 hover:text-red-600 hover:bg-red-600 hover:bg-opacity-20 p-2 rounded-full transition-colors duration-300"
                       title="Remove from cart"
                     >
                       <Trash2 size={20} />
@@ -109,16 +78,18 @@ function Cart() {
         </div>
 
         {products.length === 0 && (
-          <div className="text-center text-gray-500 py-6">
+          <div className="text-center text-gray-400 py-6">
             Your cart is empty
           </div>
         )}
 
         <div className="mt-6 flex justify-between items-center">
-          <div className="text-xl font-bold text-blue-800">
+          <div className="text-2xl font-bold text-white">
             Total: ${products.reduce((sum, product) => sum + product.price, 0).toFixed(2)}
           </div>
-           
+          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors duration-300">
+            Checkout
+          </button>
         </div>
       </div>
     </div>

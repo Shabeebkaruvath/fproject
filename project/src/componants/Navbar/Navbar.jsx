@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, User, MessageCircle, ShoppingCart, Activity } from 'lucide-react';
+import { Home, User, MessageCircle, ShoppingCart } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 const Navbar = () => {
@@ -9,7 +9,7 @@ const Navbar = () => {
   const navItems = [
     { to: '/', icon: Home, label: 'Home' },
     { to: '/profile', icon: User, label: 'Profile' },
-    { to: '/analytics', icon: Activity, label: 'Price History' },
+    { to: '/analytics', icon: ShoppingCart, label: 'Cart' },
     { to: '/feedback', icon: MessageCircle, label: 'Feedback' },
   ];
 

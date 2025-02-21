@@ -11,7 +11,7 @@ const RegisterForm = ({ setStatelogin }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [formData, setFormData] = useState({
-    fname: '',
+     
     email: '',
     password: '',
     confirmPassword: '',
@@ -33,12 +33,7 @@ const RegisterForm = ({ setStatelogin }) => {
     setError(null);
     setIsLoading(true);
 
-    // Validate form fields
-    if (!formData.fname.trim()) {
-      setError('Full name is required.');
-      setIsLoading(false);
-      return;
-    }
+  
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match.');
@@ -67,10 +62,20 @@ const RegisterForm = ({ setStatelogin }) => {
 
       await setDoc(doc(db, 'users', userCredential.user.uid), userDoc);
 
-      // 3. Clear form data
+      // 3. Create a cart document for the user
+      const cartDoc = {
+        items: [], // Initialize with an empty array for cart items
+        userId: userCredential.user.uid,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await setDoc(doc(db, 'carts', userCredential.user.uid), cartDoc);
+
+      // 4. Clear form data
       setFormData({ fname: '', email: '', password: '', confirmPassword: '' });
 
-      // 4. Update login state and navigate to home page
+      // 5. Update login state and navigate to home page
       setStatelogin=true; // Update the login state in App.js
       navigate('/'); // Redirect to home page
     } catch (err) {
@@ -116,24 +121,7 @@ const RegisterForm = ({ setStatelogin }) => {
           )}
 
           <div className="space-y-5">
-            <div>
-              <label
-                htmlFor="fname"
-                className="block text-sm font-medium text-[#0b1956] mb-1"
-              >
-                UserName
-              </label>
-              <input
-                id="fname"
-                type="text"
-                name="fname"
-                placeholder="Enter your username"
-                value={formData.fname}
-                onChange={handleChange}
-                disabled={isLoading}
-                className="appearance-none rounded-lg relative block w-full px-4 py-3 border border-[#0b1956]/20 placeholder-[#0b1956]/50 text-[#0b1956] focus:outline-none focus:ring-2 focus:ring-[#0b1956]/30 focus:border-[#0b1956] bg-[#faf3eb]/30 transition-colors duration-200"
-              />
-            </div>
+             
 
             <div>
               <label
