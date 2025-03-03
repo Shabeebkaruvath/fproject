@@ -45,7 +45,7 @@ const Login = () => {
           errorMessage = 'No user found with this email.';
           break;
         case 'auth/network-request-failed':
-          errorMessage = 'Dont have proper internet connection.';
+          errorMessage = 'check internet connection.';
           break;
         case 'auth/wrong-password':
           errorMessage = 'Incorrect password.';

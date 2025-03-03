@@ -11,6 +11,7 @@ import {
   GamepadIcon,
   Speaker,
 } from "lucide-react";
+import "./Home.css";
 
 const Home = () => {
   const [query, setQuery] = useState("");
@@ -137,28 +138,32 @@ const Home = () => {
             <button
               onClick={handleSearchClick}
               aria-label="Search"
-              className="absolute right-1.5 top-1/2 transform -translate-y-1/2 bg-gray-900 hover:bg-gray-800 text-white rounded-full w-9 h-9 flex items-center justify-center transition-all duration-300 touch-manipulation"
+              className="absolute right-1
+              .5 top-1/2 transform -translate-y-1/2 bg-gray-900 hover:bg-gray-800 text-white rounded-full w-9 h-9 flex items-center justify-center transition-all duration-300 touch-manipulation"
             >
               <Search size={18} />
             </button>
           </div>
-          <h3 className="text mt-4 underline text-gray-400 font-thin">
-            Suggestions
-          </h3>
+
           {/* Suggestions - Only shown when search is empty and not searching */}
           {shouldShowSuggestions && (
-            <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto px-4">
-              {suggestions.map((item, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleKeyword(item.keyword)}
-                  className="flex items-center justify-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-300 text-gray-700 hover:text-gray-900"
-                >
-                  <item.icon size={16} />
-                  <span className="text-sm font-medium">{item.keyword}</span>
-                </button>
-              ))}
-            </div>
+            <>
+              <h3 className="text mt-4 underline text-gray-400 font-thin">
+                Suggestions
+              </h3>
+              <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto px-4">
+                {suggestions.map((item, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleKeyword(item.keyword)}
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-300 text-gray-700 hover:text-gray-900"
+                  >
+                    <item.icon size={16} />
+                    <span className="text-sm font-medium">{item.keyword}</span>
+                  </button>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -169,13 +174,26 @@ const Home = () => {
           showProducts ? "pt-32" : ""
         } pb-24 md:pb-8`}
       >
-        <div className="px-4">
-          {loading && (
-            <div className="text-base text-gray-600 text-center">
-              Searching...
+        {loading && (
+          <div className="fixed inset-0 flex items-center justify-center bg-gray-50 bg-opacity-75 z-50">
+            <div className="lds-spinner">
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
             </div>
-          )}
+          </div>
+        )}
 
+        <div className="px-4">
           {showProducts && products.length > 0 && (
             <div className="mb-6 flex justify-between items-center">
               <select
@@ -228,16 +246,17 @@ const Home = () => {
                       </h3>
                       <p className="text-gray-600 mb-4 font-medium">{price}</p>
                       <div className="flex justify-end mt-2">
-                      <a
-                        href={buy_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-block w-full px-4 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-lg text-center transition-colors duration-300 hover:bg-gray-800 active:bg-gray-950"
-                        aria-label={`View details for ${name}`}
-                      >
-                        View Details
-                      </a>
-                      
+                        <a
+                          href={buy_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block w-full px-4 py-2.5 text-sm font-medium text-white bg-gray-900 rounded-lg text-center transition-colors duration-300 hover:bg-gray-800 active:bg-gray-
+                          950"
+                          aria-label={`View details for ${name}`}
+                        >
+                          View Details
+                        </a>
+
                         <button
                           onClick={() => toggleCart(index)}
                           className="p-2.5 rounded ml-2 border-[#000] border-y-4 bg-white/90 backdrop-blur-sm transition-colors duration-300 hover:bg-white-200"
@@ -249,7 +268,7 @@ const Home = () => {
                         >
                           <ShoppingCart
                             size={18}
-                            className={ ` transition-colors duration-300 ${
+                            className={`transition-colors duration-300 ${
                               cartItems.has(index)
                                 ? "stroke-blue-500"
                                 : "stroke-gray-600 hover:stroke-blue-500"

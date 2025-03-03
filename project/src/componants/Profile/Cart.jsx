@@ -1,93 +1,57 @@
 import React from 'react';
-import { ShoppingCart, Star, Trash2 } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 
 function Cart() {
-  const products = [
-    {
-      id: 1,
-      name: 'Sample Keyboard',
-      brand: 'Sample',
-      type: 'Mechanical',
-      layout: 'QWERTY',
-      price: 99.99,
-      rating: 4.5,
-      image: "https://img.icons8.com/?size=100&id=z-JBA_KtSkxG&format=png&color=000000"
-    },
-    // You can add more products here
-  ];
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#0f0c29] to-[#302b63] via-[#24243e]">
-      <div className="bg-gray-800 shadow-2xl rounded-3xl w-full max-w-5xl p-8 border border-blue-200">
-        <div className="flex items-center space-x-3 mb-6">
-          <ShoppingCart className="text-blue-400" size={32} />
-          <h2 className="text-3xl font-bold text-white">
-            Your Cart
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#f0f0f0] to-[#e0e0e0] via-[#d0d0d0]">
+      <div className="bg-white shadow-2xl rounded-3xl w-full max-w-5xl p-6 sm:p-8 md:p-10 lg:p-12 border border-gray-300">
+        <div className="flex items-center space-x-3 mb-4 sm:mb-6 md:mb-8">
+          <ShoppingCart className="text-red-500" size={32} />
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">
+              Cart
           </h2>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-blue-900 text-white">
-                <th className="p-4 text-left">Product</th>
-                <th className="p-4 text-left">Brand</th>
-                <th className="p-4 text-left">Type</th>
-                <th className="p-4 text-left">Layout</th>
-                <th className="p-4 text-left">Price</th>
-                <th className="p-4 text-left">Rating</th>
-                <th className="p-4 text-left">Actions</th>
+              <tr className="bg-gray-200 text-gray-800">
+                <th className="p-2 sm:p-4 md:p-6">Product</th>
+                <th className="p-2 sm:p-4 md:p-6">Price</th>
+                <th className="p-2 sm:p-4 md:p-6">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {products.map((product) => (
-                <tr 
-                  key={product.id} 
-                  className="border-b border-blue-700 hover:bg-blue-800 transition-colors duration-300"
-                >
-                  <td className="p-4 flex items-center space-x-3">
-                    <img 
-                      src={product.image} 
-                      alt={product.name} 
-                      className="w-16 h-16 rounded-lg object-cover border-2 border-blue-500"
-                    />
-                    <span className="font-medium text-white">{product.name}</span>
-                  </td>
-                  <td className="p-4 text-gray-300">{product.brand}</td>
-                  <td className="p-4 text-gray-300">{product.type}</td>
-                  <td className="p-4 text-gray-300">{product.layout}</td>
-                  <td className="p-4 font-semibold text-blue-400">${product.price}</td>
-                  <td className="p-4">
-                    <div className="flex items-center space-x-1 text-yellow-400">
-                      <Star size={16} fill="currentColor" />
-                      <span>{product.rating}</span>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <button 
-                      className="text-red-400 hover:text-red-600 hover:bg-red-600 hover:bg-opacity-20 p-2 rounded-full transition-colors duration-300"
-                      title="Remove from cart"
-                    >
-                      <Trash2 size={20} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {/* Add your product rows here */}
+              <tr className="border-b border-gray-300 hover:bg-gray-200 transition-colors duration-300">
+                <td className="p-2 sm:p-4 md:p-6 flex items-center space-x-3">
+                  <img
+                    src="https://via.placeholder.com/150"
+                    alt="Product Name"
+                    className="w-16 h-16 rounded-lg object-cover border-2 border-red-500 sm:w-20 sm:h-20"
+                  />
+                  <span className="font-medium text-gray-800">Product Name</span>
+                </td>
+                <td className="p-2 sm:p-4 md:p-6 font-semibold text-red-500">$99.99</td>
+                <td className="p-2 sm:p-4 md:p-6">
+                  <button className="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition-colors duration-300">
+                    Buy
+                  </button>
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
 
-        {products.length === 0 && (
-          <div className="text-center text-gray-400 py-6">
-            Your cart is empty
-          </div>
-        )}
+        <div className="text-center text-gray-500 py-4 sm:py-6 md:py-8">
+          Your cart is empty
+        </div>
 
-        <div className="mt-6 flex justify-between items-center">
-          <div className="text-2xl font-bold text-white">
-            Total: ${products.reduce((sum, product) => sum + product.price, 0).toFixed(2)}
+        <div className="mt-4 sm:mt-6 md:mt-8 flex flex-col sm:flex-row justify-between items-center">
+          <div className="text-xl sm:text-2xl font-bold text-gray-800">
+            Total: $0.00
           </div>
-          <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors duration-300">
+          <button className="mt-4 sm:mt-0 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors duration-300">
             Checkout
           </button>
         </div>
