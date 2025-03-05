@@ -278,8 +278,8 @@ const Home = () => {
                           onClick={() => toggleCart(product)}
                           className={`p-2.5 rounded ml-2 transition-colors duration-300 border ${
                             inCart
-                              ? "border-gray-900 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-800"
-                              : "border-blue-500 bg-blue-500 text-white hover:bg-blue-600"
+                               ? "border-blue-500 bg-blue-500 text-white hover:bg-blue-600 hover:text-gray-800"
+                               :"border-gray-900 bg-white text-gray-900 hover:bg-gray-100 hover:text-gray-800"
                           }`}
                           
                         >
