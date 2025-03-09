@@ -17,9 +17,7 @@ import {
   addDoc,
   doc,
   deleteDoc,
-  
   getDocs,
- 
 } from "firebase/firestore";
 import { OrbitProgress } from 'react-loading-indicators'; // Adjust the import based on your library
 import "./Home.css";
@@ -30,15 +28,10 @@ const Home = () => {
   const [sortOrder, setSortOrder] = useState("default");
   const [cartItems, setCartItems] = useState([]); // Changed from Set to Array to store complete cart items
   const inputRef = useRef(null);
-
-  const [query, setQuery] = useState(() => {
-    return localStorage.getItem("searchQuery") || "";
-  });
-
-  const [products, setProducts] = useState(() => {
-    const savedProducts = localStorage.getItem("products");
-    return savedProducts ? JSON.parse(savedProducts) : [];
-  });
+  
+  // Removed localStorage initialization
+  const [query, setQuery] = useState("");
+  const [products, setProducts] = useState([]);
 
   useEffect(() => {
     const fetchCartItems = async () => {
@@ -87,7 +80,7 @@ const Home = () => {
       const data = await response.json();
       setProducts(data);
       setShowProducts(true);
-      localStorage.setItem("products", JSON.stringify(data));
+      // Removed localStorage.setItem for products
     } catch (error) {
       console.error("Error fetching data:", error);
       setProducts([]);
@@ -99,7 +92,7 @@ const Home = () => {
   const handleSearch = (event) => {
     const newQuery = event.target.value;
     setQuery(newQuery);
-    localStorage.setItem("searchQuery", newQuery);
+    // Removed localStorage.setItem for query
     if (newQuery === "") {
       setShowProducts(false);
     }
@@ -114,7 +107,7 @@ const Home = () => {
 
   const handleKeyword = (keyword) => {
     setQuery(keyword);
-    localStorage.setItem("searchQuery", keyword);
+    // Removed localStorage.setItem for query
     setShowProducts(true);
     fetchProducts();
   };

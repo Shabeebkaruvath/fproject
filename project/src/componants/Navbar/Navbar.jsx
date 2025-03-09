@@ -36,8 +36,8 @@ const Navbar = () => {
               className="text-3xl text-white font-['Inter'] flex items-center gap-3 group"
               aria-label="Go to Home"
             >
-              <span className="relative">ShopNest</span>
-              <ShoppingCart className="transform group-hover:rotate-12 transition-transform duration-200" size={30} />
+              <span className="relative">Shop<span className='text-blue-500'>Nest</span></span>
+              <ShoppingCart className="transform group-hover:rotate-12 transition-transform duration-200 text-blue-500" size={30} />
             </Link>
             
             <div className="flex items-center gap-6">
@@ -84,8 +84,8 @@ const Navbar = () => {
             className="text-2xl text-white font-['Inter'] flex items-center gap-2 group"
             aria-label="Go to Home"
           >
-            <span>ShopNest</span>
-            <ShoppingCart className="transform group-hover:rotate-12 transition-transform duration-300" size={24} />
+            <span>Shop<span className='text-blue-500'>Nest</span></span>
+            <ShoppingCart className="transform group-hover:rotate-12 transition-transform duration-300 text-blue-500" size={24} />
           </Link>
         </div>
       </div>
