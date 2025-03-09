@@ -75,7 +75,7 @@ function Profile() {
               <span className="font-medium text-[#2e4156]">Email:</span> {userEmail || "Loading..."}
             </p>
             <p className="text-[#666666] text-xs sm:text-sm">
-              <span className="font-medium text-[#2e4156]">Member Since:</span> {formattedDate}
+              <span className="font-medium text-[#2e4156]">Last Login:</span> {formattedDate}
             </p>
           </div>
         </div>
