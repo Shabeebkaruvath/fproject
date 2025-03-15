@@ -36,11 +36,7 @@ const Navbar = () => {
               className="text-3xl text-white font-['Inter'] flex items-center gap-3 group"
               aria-label="Go to Home"
             >
-<<<<<<< HEAD
              <span>Shop<span className='text-blue-500'>Nest</span></span>
-=======
-              <span className="relative">Shop<span className='text-blue-500'>Nest</span></span>
->>>>>>> cb01f1cdf4f4bfb262e9f7d8c25523a81550cf18
               <ShoppingCart className="transform group-hover:rotate-12 transition-transform duration-200 text-blue-500" size={30} />
             </Link>
             

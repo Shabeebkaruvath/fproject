@@ -198,7 +198,7 @@ const RegisterForm = ({ setStateLogin }) => {
               id="email"
               type="email"
               name="email"
-              placeholder="you@example.com"
+              placeholder="Enter your email"
               value={formData.email}
               onChange={handleChange}
               disabled={isLoading}
