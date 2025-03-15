@@ -4,6 +4,7 @@ import { auth } from './firebase/firebase'; // Import Firebase auth
 import { onAuthStateChanged } from 'firebase/auth'; // Import onAuthStateChanged
 import './App.css';
 import Home from './componants/Home/Home';
+import Footer from './componants/Footer/Footer';
 import Navbar from './componants/Navbar/Navbar';
 import Profile from './componants/Profile/Profile';
 import Cart from './componants/Profile/Cart';
@@ -61,6 +62,7 @@ function AppContent({ statelogin, setStatelogin }) {
         <Route path="/login" element={<Login setStatelogin={setStatelogin} />} />
         <Route path="/register" element={<Register />} />
       </Routes>
+      {statelogin && location.pathname !== '/login' && location.pathname !== '/register' && <Footer/>}
     </div>
   );
 }

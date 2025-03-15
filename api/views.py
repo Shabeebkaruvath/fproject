@@ -4,7 +4,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view  
 import urllib.parse
 from django.core.cache import cache
 
@@ -14,7 +14,7 @@ def get_products(request):
     # Get the search query and pagination parameters from the request
     query = request.GET.get('q', '')
     start_index = int(request.GET.get('start', 0))  # Start index for pagination
-    limit =24 # Number of products to load initially
+    limit =30 # Number of products to load initially
 
     if not query:
         return Response({"error": "No query provided"}, status=400)

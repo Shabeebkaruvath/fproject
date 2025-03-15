@@ -17,11 +17,9 @@ import {
   addDoc,
   doc,
   deleteDoc,
-  
   getDocs,
- 
 } from "firebase/firestore";
-import { OrbitProgress } from 'react-loading-indicators'; // Adjust the import based on your library
+import { OrbitProgress } from "react-loading-indicators"; // Adjust the import based on your library
 import "./Home.css";
 
 const Home = () => {
@@ -49,9 +47,9 @@ const Home = () => {
         try {
           const cartSnapshot = await getDocs(cartRef);
           // Store full cart items data instead of just IDs
-          const items = cartSnapshot.docs.map(doc => ({
+          const items = cartSnapshot.docs.map((doc) => ({
             id: doc.id, // Firestore document ID
-            ...doc.data()
+            ...doc.data(),
           }));
           setCartItems(items);
         } catch (error) {
@@ -145,7 +143,7 @@ const Home = () => {
 
   // Check if a product is in cart by name
   const isProductInCart = (productName) => {
-    return cartItems.some(item => item.title === productName);
+    return cartItems.some((item) => item.title === productName);
   };
 
   const toggleCart = async (product) => {
@@ -164,15 +162,17 @@ const Home = () => {
 
     const userId = user.uid;
     const cartRef = collection(db, "users", userId, "cart");
-    
+
     // Check if product is in cart by name
-    const productInCart = cartItems.find(item => item.title === product.name);
+    const productInCart = cartItems.find((item) => item.title === product.name);
     const isInCart = !!productInCart;
-    
+
     // Optimistic UI update
     if (isInCart) {
       // Remove from cart
-      setCartItems(prev => prev.filter(item => item.title !== product.name));
+      setCartItems((prev) =>
+        prev.filter((item) => item.title !== product.name)
+      );
     } else {
       // Add to cart
       const newCartItem = {
@@ -182,7 +182,7 @@ const Home = () => {
         price: product.price,
         buyUrl: product.buy_url,
       };
-      setCartItems(prev => [...prev, newCartItem]);
+      setCartItems((prev) => [...prev, newCartItem]);
     }
 
     try {
@@ -198,13 +198,11 @@ const Home = () => {
           price: product.price,
           buyUrl: product.buy_url,
         });
-        
+
         // Update local state with the new Firestore document ID
-        setCartItems(prev => 
-          prev.map(item => 
-            item.title === product.name 
-              ? { ...item, id: docRef.id } 
-              : item
+        setCartItems((prev) =>
+          prev.map((item) =>
+            item.title === product.name ? { ...item, id: docRef.id } : item
           )
         );
       }
@@ -222,9 +220,9 @@ const Home = () => {
       try {
         const cartSnapshot = await getDocs(cartRef);
         // Store full cart items data instead of just IDs
-        const items = cartSnapshot.docs.map(doc => ({
+        const items = cartSnapshot.docs.map((doc) => ({
           id: doc.id, // Firestore document ID
-          ...doc.data()
+          ...doc.data(),
         }));
         setCartItems(items);
       } catch (error) {
@@ -289,7 +287,13 @@ const Home = () => {
       >
         {loading && (
           <div className="flex justify-center items-center h-48">
-            <OrbitProgress variant="dotted" color="#0395e3" size="medium" text="" textColor="#12b4ff" />
+            <OrbitProgress
+              variant="dotted"
+              color="#0395e3"
+              size="medium"
+              text=""
+              textColor="#12b4ff"
+            />
           </div>
         )}
         {showProducts && products.length > 0 && (
@@ -327,7 +331,7 @@ const Home = () => {
                     )}
                     <div className="p-4">
                       <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                        {name}
+                        {name.length > 50 ? `${name.slice(0, 50)}...` : name}
                       </h3>
                       <p className="text-xl font-semibold text-gray-900 mb-4">
                         {price}

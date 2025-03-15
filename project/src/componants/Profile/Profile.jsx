@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ShoppingCart, LogOut, Edit } from "lucide-react";
+import { ShoppingCart, LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase/firebase";
@@ -62,8 +62,7 @@ function Profile() {
               to="/profile"
               className="text-xs sm:text-sm text-[#2e4156] hover:text-blue-600 flex items-center space-x-1 mt-1 sm:mt-2"
             >
-              <Edit size={14} />
-              <span>Edit</span>
+              
             </Link>
           </div>
         </div>
