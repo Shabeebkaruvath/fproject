@@ -156,6 +156,7 @@ const RegisterForm = ({ setStateLogin }) => {
 
       // Navigate to home page
       navigate('/');
+      alert('Registerd successfully')  
     } catch (err) {
       console.error("Registration error:", err.code, err.message);
 

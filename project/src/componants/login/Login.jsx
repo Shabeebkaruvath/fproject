@@ -35,7 +35,8 @@ const Login = () => {
       );
 
       console.log(userCredential);
-      navigate('/');  // Redirect to home page after successful login
+      navigate('/');
+      alert('login successfully')  // Redirect to home page after successful login
 
     } catch (err) {
       let errorMessage = 'Login failed. Please try again.';
