@@ -1,86 +1,68 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
-  Search,
-  ShoppingCart,
-  Laptop,
-  Smartphone,
-  Camera,
-  Headphones,
-  Watch,
-  Tv,
-  GamepadIcon,
-  Speaker,
+  Search, ShoppingCart, Laptop, Smartphone, Camera,
+  Headphones, Watch, Tv, GamepadIcon, Speaker,
 } from "lucide-react";
 import { auth, db } from "../../firebase/firebase";
-import {
-  collection,
-  addDoc,
-  doc,
-  deleteDoc,
-  getDocs,
-} from "firebase/firestore";
-import { OrbitProgress } from "react-loading-indicators"; // Adjust the import based on your library
+import { collection, addDoc, doc, deleteDoc, getDocs } from "firebase/firestore";
+import { OrbitProgress } from "react-loading-indicators";
 import "./Home.css";
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
+
+const suggestions = [
+  { keyword: "Laptops", icon: Laptop },
+  { keyword: "Phones", icon: Smartphone },
+  { keyword: "Cameras", icon: Camera },
+  { keyword: "Headphones", icon: Headphones },
+  { keyword: "Smartwatch", icon: Watch },
+  { keyword: "Television", icon: Tv },
+  { keyword: "Gaming", icon: GamepadIcon },
+  { keyword: "Speakers", icon: Speaker },
+];
 
 const Home = () => {
   const [loading, setLoading] = useState(false);
   const [showProducts, setShowProducts] = useState(false);
   const [sortOrder, setSortOrder] = useState("default");
-  const [cartItems, setCartItems] = useState([]); // Changed from Set to Array to store complete cart items
-  const inputRef = useRef(null);
-  
-  // Removed localStorage initialization
+  const [cartItems, setCartItems] = useState([]);
   const [query, setQuery] = useState("");
   const [products, setProducts] = useState([]);
+  const inputRef = useRef(null);
 
-  useEffect(() => {
-    const fetchCartItems = async () => {
-      const user = auth.currentUser;
-      if (user) {
-        const userId = user.uid;
-        const cartRef = collection(db, "users", userId, "cart");
-        try {
-          const cartSnapshot = await getDocs(cartRef);
-          // Store full cart items data instead of just IDs
-          const items = cartSnapshot.docs.map((doc) => ({
-            id: doc.id, // Firestore document ID
-            ...doc.data(),
-          }));
-          setCartItems(items);
-        } catch (error) {
-          console.error("Error fetching cart items:", error);
-        }
-      }
-    };
-    fetchCartItems();
+  // Single source-of-truth for fetching cart — useCallback so it can be
+  // safely listed in dependency arrays without causing infinite loops.
+  const fetchCartItems = useCallback(async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+    const cartRef = collection(db, "users", user.uid, "cart");
+    try {
+      const snapshot = await getDocs(cartRef);
+      const items = snapshot.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((item) => item.title); // exclude dummy registration doc
+      setCartItems(items);
+    } catch (error) {
+      console.error("Error fetching cart items:", error);
+    }
   }, []);
 
-  const suggestions = [
-    { keyword: "Laptops", icon: Laptop },
-    { keyword: "Phones", icon: Smartphone },
-    { keyword: "Cameras", icon: Camera },
-    { keyword: "Headphones", icon: Headphones },
-    { keyword: "Smartwatch", icon: Watch },
-    { keyword: "Television", icon: Tv },
-    { keyword: "Gaming", icon: GamepadIcon },
-    { keyword: "Speakers", icon: Speaker },
-  ];
+  useEffect(() => {
+    fetchCartItems();
+  }, [fetchCartItems]);
 
-  const fetchProducts = async () => {
-    if (!query) return;
+  // Fix: accept the query string as a parameter so we never read stale state
+  const fetchProducts = async (searchQuery) => {
+    if (!searchQuery) return;
     setLoading(true);
-
     try {
       const response = await fetch(
-        `http://localhost:8000/api/products/?q=${query}`
+        `${BACKEND_URL}/api/products/?q=${encodeURIComponent(searchQuery)}`
       );
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
+      if (!response.ok) throw new Error("Network response was not ok");
       const data = await response.json();
       setProducts(data);
       setShowProducts(true);
-      // Removed localStorage.setItem for products
     } catch (error) {
       console.error("Error fetching data:", error);
       setProducts([]);
@@ -92,57 +74,40 @@ const Home = () => {
   const handleSearch = (event) => {
     const newQuery = event.target.value;
     setQuery(newQuery);
-    // Removed localStorage.setItem for query
-    if (newQuery === "") {
-      setShowProducts(false);
-    }
+    if (newQuery === "") setShowProducts(false);
   };
 
   const handleSearchClick = () => {
-    if (query.trim().length > 0) {
-      setShowProducts(true);
-      fetchProducts();
-    }
+    if (query.trim().length > 0) fetchProducts(query.trim());
   };
 
+  // Fix: pass keyword directly — don't rely on query state update being synchronous
   const handleKeyword = (keyword) => {
     setQuery(keyword);
-    // Removed localStorage.setItem for query
-    setShowProducts(true);
-    fetchProducts();
+    fetchProducts(keyword);
   };
 
   const handleKeyDown = (event) => {
-    if (event.key === "Enter") {
-      handleSearchClick();
-    }
+    if (event.key === "Enter") handleSearchClick();
   };
 
   const handleSort = (event) => {
     const order = event.target.value;
     setSortOrder(order);
-
-    const sortedProducts = [...products].sort((a, b) => {
+    const sorted = [...products].sort((a, b) => {
       const priceA = parseFloat(a.price.replace(/[^0-9.-]+/g, ""));
       const priceB = parseFloat(b.price.replace(/[^0-9.-]+/g, ""));
-      if (order === "lowToHigh") {
-        return priceA - priceB;
-      } else if (order === "highToLow") {
-        return priceB - priceA;
-      }
+      if (order === "lowToHigh") return priceA - priceB;
+      if (order === "highToLow") return priceB - priceA;
       return 0;
     });
-
-    setProducts(sortedProducts);
+    setProducts(sorted);
   };
 
-  // Check if a product is in cart by name
-  const isProductInCart = (productName) => {
-    return cartItems.some((item) => item.title === productName);
-  };
+  const isProductInCart = (productName) =>
+    cartItems.some((item) => item.title === productName);
 
   const toggleCart = async (product) => {
-    // Ensure product has a unique ID
     if (!product?.id) {
       product.id = product.buy_url
         ? product.buy_url.split("?")[0]
@@ -150,42 +115,30 @@ const Home = () => {
     }
 
     const user = auth.currentUser;
-    if (!user) {
-      console.log("User not authenticated");
-      return;
-    }
+    if (!user) return;
 
-    const userId = user.uid;
-    const cartRef = collection(db, "users", userId, "cart");
-
-    // Check if product is in cart by name
+    const cartRef = collection(db, "users", user.uid, "cart");
     const productInCart = cartItems.find((item) => item.title === product.name);
     const isInCart = !!productInCart;
 
-    // Optimistic UI update
+    // Optimistic update
     if (isInCart) {
-      // Remove from cart
-      setCartItems((prev) =>
-        prev.filter((item) => item.title !== product.name)
-      );
+      setCartItems((prev) => prev.filter((item) => item.title !== product.name));
     } else {
-      // Add to cart
-      const newCartItem = {
+      const newItem = {
         productId: product.id,
         imgUrl: product.image,
         title: product.name,
         price: product.price,
         buyUrl: product.buy_url,
       };
-      setCartItems((prev) => [...prev, newCartItem]);
+      setCartItems((prev) => [...prev, newItem]);
     }
 
     try {
       if (isInCart) {
-        // Delete the item from Firestore
-        await deleteDoc(doc(db, "users", userId, "cart", productInCart.id));
+        await deleteDoc(doc(db, "users", user.uid, "cart", productInCart.id));
       } else {
-        // Add the item to Firestore
         const docRef = await addDoc(cartRef, {
           productId: product.id,
           imgUrl: product.image,
@@ -193,8 +146,6 @@ const Home = () => {
           price: product.price,
           buyUrl: product.buy_url,
         });
-
-        // Update local state with the new Firestore document ID
         setCartItems((prev) =>
           prev.map((item) =>
             item.title === product.name ? { ...item, id: docRef.id } : item
@@ -203,26 +154,7 @@ const Home = () => {
       }
     } catch (error) {
       console.error("Error updating cart:", error);
-      // Revert optimistic update if operation failed
-      fetchCartItems();
-    }
-  };
-  const fetchCartItems = async () => {
-    const user = auth.currentUser;
-    if (user) {
-      const userId = user.uid;
-      const cartRef = collection(db, "users", userId, "cart");
-      try {
-        const cartSnapshot = await getDocs(cartRef);
-        // Store full cart items data instead of just IDs
-        const items = cartSnapshot.docs.map((doc) => ({
-          id: doc.id, // Firestore document ID
-          ...doc.data(),
-        }));
-        setCartItems(items);
-      } catch (error) {
-        console.error("Error fetching cart items:", error);
-      }
+      fetchCartItems(); // revert optimistic update
     }
   };
 
@@ -230,7 +162,6 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Search bar container */}
       <div
         className={`w-full ${
           !showProducts
@@ -256,13 +187,14 @@ const Home = () => {
             <Search size={18} />
           </button>
         </div>
+
         {shouldShowSuggestions && (
           <div className="mt-4 flex flex-wrap justify-center gap-4">
-            {suggestions.map((suggestion, index) => {
+            {suggestions.map((suggestion) => {
               const Icon = suggestion.icon;
               return (
                 <button
-                  key={index}
+                  key={suggestion.keyword}
                   onClick={() => handleKeyword(suggestion.keyword)}
                   className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-100 transition duration-200 ease-in-out"
                 >
@@ -274,7 +206,7 @@ const Home = () => {
           </div>
         )}
       </div>
-      {/* Content area */}
+
       <div
         className={`w-full max-w-6xl mx-auto ${
           showProducts ? "pt-32" : ""
@@ -282,36 +214,29 @@ const Home = () => {
       >
         {loading && (
           <div className="flex justify-center items-center h-48">
-            <OrbitProgress
-              variant="dotted"
-              color="#0395e3"
-              size="medium"
-              text=""
-              textColor="#12b4ff"
-            />
+            <OrbitProgress variant="dotted" color="#0395e3" size="medium" />
           </div>
         )}
+
         {showProducts && products.length > 0 && (
           <div className="px-4">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Products</h2>
-              <div className="flex items-center">
-                <select
-                  value={sortOrder}
-                  onChange={handleSort}
-                  className="p-2 border border-gray-300 rounded"
-                >
-                  <option value="default">Default Sorting</option>
-                  <option value="highToLow">Price: High to Low</option>
-                  <option value="lowToHigh">Price: Low to High</option>
-                </select>
-              </div>
+              <select
+                value={sortOrder}
+                onChange={handleSort}
+                className="p-2 border border-gray-300 rounded"
+              >
+                <option value="default">Default Sorting</option>
+                <option value="highToLow">Price: High to Low</option>
+                <option value="lowToHigh">Price: Low to High</option>
+              </select>
             </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
               {products.map((product, index) => {
                 const { image, name, price, buy_url, source } = product;
                 const inCart = isProductInCart(name);
-
                 return (
                   <div
                     key={product.id || index}
@@ -348,9 +273,7 @@ const Home = () => {
                               ? "border-blue-600 bg-blue-600 text-white hover:bg-blue-700"
                               : "border-gray-300 bg-white text-gray-900 hover:bg-gray-100"
                           }`}
-                          aria-label={
-                            inCart ? "Remove from cart" : "Add to cart"
-                          }
+                          aria-label={inCart ? "Remove from cart" : "Add to cart"}
                         >
                           <ShoppingCart
                             size={20}
@@ -370,6 +293,7 @@ const Home = () => {
             </div>
           </div>
         )}
+
         {showProducts && products.length === 0 && !loading && (
           <div className="flex justify-center items-center h-48">
             <p className="text-gray-600">No products found.</p>
