@@ -1,241 +1,360 @@
-import asyncio
-import atexit
-import concurrent.futures
 import json
 import logging
-import signal
+import re
 import time
 import urllib.parse
 
-import aiohttp
-from django.conf import settings
+import requests
+from bs4 import BeautifulSoup
 from django.core.cache import cache
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-DRIVER_POOL_SIZE = 3
-driver_pool = []
+# ──────────────────────────────────────────────
+# Session — shared across requests for keep-alive
+# ──────────────────────────────────────────────
+SESSION = requests.Session()
+SESSION.headers.update({
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "DNT": "1",
+})
 
 
-def create_driver():
-    """Create and configure a headless Chrome WebDriver."""
-    chrome_options = Options()
-    chrome_options.add_argument('--headless')
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--disable-extensions')
-    chrome_options.add_argument('--disable-infobars')
-    chrome_options.add_argument('--disable-notifications')
-    chrome_options.page_load_strategy = 'eager'
-    driver = webdriver.Chrome(options=chrome_options)
-    driver.set_page_load_timeout(settings.SELENIUM_TIMEOUT + 5)
-    return driver
+# ──────────────────────────────────────────────
+# Cache key helper
+# ──────────────────────────────────────────────
+def make_cache_key(query: str, start: int = None, limit: int = None) -> str:
+    safe = re.sub(r"[^a-zA-Z0-9_]", "_", query.lower().strip())
+    safe = re.sub(r"_+", "_", safe).strip("_")
+    base = f"products_{safe}"
+    if start is not None and limit is not None:
+        return f"{base}_{start}_{limit}"[:200]
+    return base[:200]
 
 
-def get_driver_from_pool():
-    """Return a driver from the pool, or create one if the pool is empty."""
-    global driver_pool
-    if not driver_pool:
-        driver_pool = [create_driver() for _ in range(DRIVER_POOL_SIZE)]
-    return driver_pool.pop() if driver_pool else create_driver()
+# ──────────────────────────────────────────────
+# DuckDuckGo Shopping scraper
+# ──────────────────────────────────────────────
+DDG_SHOPPING_URL = "https://duckduckgo.com/"
+DDG_RESULTS_URL  = "https://links.duckduckgo.com/d.js"
+
+# Container class selectors DDG has used (falls back through list)
+DDG_CONTAINER_CLASSES = [
+    "sh-np__click-target",   # shopping card link wrapper
+    "ais-hits--item",
+    "result--shopping",
+]
+
+DDG_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Referer": "https://duckduckgo.com/",
+    "sec-ch-ua": '"Chromium";v="124", "Google Chrome";v="124"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "same-origin",
+    "Upgrade-Insecure-Requests": "1",
+}
 
 
-def return_driver_to_pool(driver):
-    """Return a used driver to the pool for reuse."""
-    global driver_pool
-    if len(driver_pool) < DRIVER_POOL_SIZE:
-        try:
-            driver.delete_all_cookies()
-            driver_pool.append(driver)
-        except Exception as e:
-            logger.error(f"Error returning driver to pool: {e}")
-            try:
-                driver.quit()
-            except Exception:
-                pass
-    else:
-        try:
-            driver.quit()
-        except Exception:
-            pass
-
-
-def extract_product_data(item):
-    """Extract product data from a Google Shopping product element."""
-    product_data = {
-        "name": "No name",
-        "price": "No price",
-        "image": "",
-        "buy_url": "",
-        "source": "No source",
-    }
-
+def _get_vqd(query: str) -> str | None:
+    """
+    Get the vqd token DDG requires for searches.
+    This is embedded in the DDG homepage response for a given query.
+    """
     try:
-        product_data["name"] = item.find_element(By.CLASS_NAME, "tAxDx").text
-    except Exception:
-        pass
-
-    try:
-        product_data["price"] = item.find_element(By.CLASS_NAME, "a8Pemb").text
-    except Exception:
-        pass
-
-    try:
-        link = item.find_element(By.CSS_SELECTOR, "a.shntl").get_attribute("href")
-        if link and link.startswith("/url?q="):
-            product_data["buy_url"] = urllib.parse.unquote(link[7:].split('&')[0])
-        elif link:
-            product_data["buy_url"] = link
-    except Exception:
-        pass
-
-    try:
-        product_data["image"] = item.find_element(
-            By.CSS_SELECTOR, "div.ArOc1c img[role='presentation']"
-        ).get_attribute("src")
-    except Exception:
-        pass
-
-    try:
-        product_data["source"] = item.find_element(
-            By.CSS_SELECTOR, "div.aULzUe.IuHnof"
-        ).text
-    except Exception:
-        pass
-
-    return product_data
+        resp = SESSION.get(
+            DDG_SHOPPING_URL,
+            params={"q": query, "ia": "shopping", "iax": "shopping"},
+            headers=DDG_HEADERS,
+            timeout=10,
+        )
+        resp.raise_for_status()
+        # vqd is in the page as: vqd="4-..."  or  vqd='4-...'
+        match = re.search(r'vqd[=:]["\']?([\d-]+)["\']?', resp.text)
+        if match:
+            return match.group(1)
+        logger.warning("vqd not found in DDG response")
+        return None
+    except Exception as e:
+        logger.error(f"_get_vqd error: {e}")
+        return None
 
 
-def scrape_google_shopping(query):
-    """Scrape Google Shopping results for a given query."""
+def _parse_ddg_shopping_page(html: str) -> list[dict]:
+    """
+    Parse DDG shopping HTML and extract product cards.
+    DDG shopping embeds product data as JSON inside <script> tags
+    and also renders cards in the DOM.
+    """
     products = []
-    driver = None
-    retries = 2
 
-    while retries > 0:
+    # ── Strategy 1: extract from embedded JSON ──────────────────
+    # DDG often puts product data in a JS variable like:
+    # DDG.duckbar.load('shopping', {...})  or  nrj('...', {...})
+    json_blocks = re.findall(
+        r"DDG\.duckbar\.load\('shopping',\s*(\{.*?\})\s*\)",
+        html,
+        re.DOTALL,
+    )
+    for block in json_blocks:
         try:
-            driver = get_driver_from_pool()
-            url = (
-                f"https://www.google.com/search?tbm=shop&hl=en&psb=1"
-                f"&q={urllib.parse.quote(query)}&num=50"
-            )
-            driver.get(url)
-            WebDriverWait(driver, settings.SELENIUM_TIMEOUT).until(
-                EC.presence_of_element_located((By.CLASS_NAME, "sh-dgr__content"))
-            )
-            items = driver.find_elements(By.CLASS_NAME, "sh-dgr__content")
+            data = json.loads(block)
+            items = data.get("results", data.get("data", []))
+            for item in items:
+                products.append({
+                    "name":    item.get("title") or item.get("name", ""),
+                    "price":   item.get("price", ""),
+                    "image":   item.get("image") or item.get("thumbnail", ""),
+                    "buy_url": item.get("url") or item.get("clickUrl", ""),
+                    "source":  item.get("merchant") or item.get("domain", ""),
+                    "rating":  str(item.get("rating", "")),
+                })
+        except json.JSONDecodeError:
+            continue
 
-            chunk_size = 10
-            for i in range(0, len(items), chunk_size):
-                chunk = items[i:i + chunk_size]
-                with concurrent.futures.ThreadPoolExecutor(max_workers=chunk_size) as executor:
-                    products.extend(executor.map(extract_product_data, chunk))
+    if products:
+        logger.info(f"Extracted {len(products)} products from DDG JSON")
+        return products
+
+    # ── Strategy 2: parse DOM product cards ────────────────────
+    soup = BeautifulSoup(html, "html.parser")
+
+    # DDG shopping cards — try multiple selectors
+    card_selectors = [
+        {"data-testid": "shopping-result"},
+        {"class": re.compile(r"shopping-result|sh-np|product-card")},
+    ]
+
+    cards = []
+    for selector in card_selectors:
+        cards = soup.find_all(attrs=selector)
+        if cards:
+            logger.info(f"Found {len(cards)} cards with selector: {selector}")
             break
 
-        except Exception as e:
-            logger.error(f"Scraping error (attempt {3 - retries}/2): {e}")
-            retries -= 1
-            if retries == 0:
-                logger.error("All scraping attempts failed")
-            time.sleep(1)
+    for card in cards:
+        name  = _text(card, [
+            {"class": re.compile(r"title|name|product-name")},
+            "h2", "h3",
+        ])
+        price = _text(card, [
+            {"class": re.compile(r"price|cost")},
+        ])
+        source = _text(card, [
+            {"class": re.compile(r"merchant|source|domain|store")},
+        ])
+        img_tag = card.find("img")
+        image = img_tag["src"] if img_tag and img_tag.get("src", "").startswith("http") else ""
 
-        finally:
-            if driver:
-                return_driver_to_pool(driver)
+        link_tag = card.find("a", href=True)
+        buy_url = link_tag["href"] if link_tag else ""
+        if buy_url.startswith("/"):
+            buy_url = "https://duckduckgo.com" + buy_url
+
+        if name:
+            products.append({
+                "name":    name,
+                "price":   price,
+                "image":   image,
+                "buy_url": buy_url,
+                "source":  source,
+                "rating":  "",
+            })
+
+    logger.info(f"Extracted {len(products)} products from DDG DOM")
+    return products
+
+
+def _text(tag, selectors: list) -> str:
+    """Helper: try a list of selectors and return the first non-empty text."""
+    for sel in selectors:
+        if isinstance(sel, dict):
+            found = tag.find(attrs=sel)
+        else:
+            found = tag.find(sel)
+        if found:
+            t = found.get_text(strip=True)
+            if t:
+                return t
+    return ""
+
+
+def _parse_ddg_json_response(text: str) -> list[dict]:
+    """
+    DDG d.js endpoint returns JSONP-like: nrj('...', {...});
+    Extract the JSON payload from it.
+    """
+    products = []
+    # Strip the JSONP wrapper
+    match = re.search(r"nrj\('[^']*',\s*(\{.*\})\s*\)", text, re.DOTALL)
+    if not match:
+        # Try raw JSON
+        try:
+            data = json.loads(text)
+            match_data = data
+        except Exception:
+            return products
+    else:
+        try:
+            data = json.loads(match.group(1))
+        except json.JSONDecodeError:
+            return products
+
+    results = data.get("results", [])
+    for r in results:
+        # Shopping results have a 'shopping' key
+        shopping = r.get("shopping")
+        if shopping:
+            products.append({
+                "name":    shopping.get("title", r.get("t", "")),
+                "price":   shopping.get("price", ""),
+                "image":   shopping.get("image", ""),
+                "buy_url": shopping.get("url", r.get("u", "")),
+                "source":  shopping.get("merchant", r.get("d", "")),
+                "rating":  str(shopping.get("rating", "")),
+            })
+        # Sometimes it's a plain web result about a product
+        elif r.get("t") and r.get("u"):
+            products.append({
+                "name":    r.get("t", ""),
+                "price":   "",
+                "image":   "",
+                "buy_url": r.get("u", ""),
+                "source":  r.get("d", ""),
+                "rating":  "",
+            })
 
     return products
 
 
-async def fetch_product_details_async(session, product):
-    """Optionally enrich a product with extra data (placeholder for future use)."""
-    return product
+def scrape_ddg_shopping(query: str) -> list[dict]:
+    """
+    Main scraper — tries two DDG endpoints in sequence:
+      1. DDG homepage shopping tab (HTML parse)
+      2. DDG d.js JSONP endpoint (JSON parse)
+    Falls back gracefully if either fails.
+    """
+    products = []
 
+    # ── Attempt 1: hit the DDG shopping tab directly ────────────
+    try:
+        resp = SESSION.get(
+            DDG_SHOPPING_URL,
+            params={
+                "q":    query,
+                "ia":   "shopping",
+                "iax":  "shopping",
+                "kp":   "-1",   # safe search off
+                "kl":   "in-en", # India / English
+            },
+            headers=DDG_HEADERS,
+            timeout=12,
+        )
+        resp.raise_for_status()
+        logger.info(f"DDG homepage response: {resp.status_code}, {len(resp.text)} chars")
+        products = _parse_ddg_shopping_page(resp.text)
+    except Exception as e:
+        logger.warning(f"DDG homepage attempt failed: {e}")
 
-async def enrich_products_async(products):
-    """Run enrichment for all products concurrently in batches."""
-    connector = aiohttp.TCPConnector(limit=20, force_close=True, enable_cleanup_closed=True)
-    timeout = aiohttp.ClientTimeout(total=10)
+    if products:
+        return products
 
-    async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
-        batch_size = 20
-        enriched = []
-        for i in range(0, len(products), batch_size):
-            batch = products[i:i + batch_size]
-            results = await asyncio.gather(
-                *[fetch_product_details_async(session, p) for p in batch],
-                return_exceptions=True,
+    # ── Attempt 2: DDG d.js JSONP endpoint ─────────────────────
+    try:
+        vqd = _get_vqd(query)
+        if vqd:
+            time.sleep(0.3)
+            resp2 = SESSION.get(
+                DDG_RESULTS_URL,
+                params={
+                    "q":    query,
+                    "vqd":  vqd,
+                    "ia":   "shopping",
+                    "iax":  "shopping",
+                    "kl":   "in-en",
+                },
+                headers={**DDG_HEADERS, "Accept": "application/javascript, */*"},
+                timeout=12,
             )
-            enriched.extend(r for r in results if not isinstance(r, Exception))
-            await asyncio.sleep(0.1)
-        return enriched
+            resp2.raise_for_status()
+            logger.info(f"DDG d.js response: {resp2.status_code}, {len(resp2.text)} chars")
+            products = _parse_ddg_json_response(resp2.text)
+    except Exception as e:
+        logger.warning(f"DDG d.js attempt failed: {e}")
+
+    if products:
+        return products
+
+    logger.error(f"All DDG attempts failed for query: '{query}'")
+    return []
 
 
-@api_view(['GET'])
+def filter_valid(products: list[dict]) -> list[dict]:
+    """Keep only products that have at least a name."""
+    return [p for p in products if p.get("name") and len(p["name"]) > 2]
+
+
+# ──────────────────────────────────────────────
+# API View
+# ──────────────────────────────────────────────
+@api_view(["GET"])
 def get_products(request):
-    """Return paginated product results, with two-tier caching."""
-    query = request.GET.get('q', '').strip()
-    start_index = int(request.GET.get('start', 0))
-    limit = min(int(request.GET.get('limit', 50)), 100)
+    query      = request.GET.get("q", "").strip()
+    start      = int(request.GET.get("start", 0))
+    limit      = min(int(request.GET.get("limit", 60)), 100)
 
     if not query:
         return Response({"error": "No query provided"}, status=400)
 
-    main_cache_key = f"products_{query}"
-    paginated_cache_key = f"{main_cache_key}_{start_index}_{limit}"
+    main_key  = make_cache_key(query)
+    paged_key = make_cache_key(query, start, limit)
 
-    paginated_results = cache.get(paginated_cache_key)
-    if paginated_results:
-        return Response(paginated_results)
+    # Two-tier cache
+    cached_page = cache.get(paged_key)
+    if cached_page is not None:
+        logger.info(f"Cache hit (page): {paged_key}")
+        return Response(cached_page)
 
-    all_products = cache.get(main_cache_key)
-    if all_products:
-        paginated_results = all_products[start_index:start_index + limit]
-        cache.set(paginated_cache_key, paginated_results, timeout=60 * 5)
-        return Response(paginated_results)
+    all_products = cache.get(main_key)
+    if all_products is not None:
+        logger.info(f"Cache hit (main): {main_key}")
+        page = all_products[start:start + limit]
+        cache.set(paged_key, page, timeout=300)
+        return Response(page)
 
+    # Scrape
     try:
-        products = scrape_google_shopping(query)
+        products = scrape_ddg_shopping(query)
+        products = filter_valid(products)
 
         if not products:
-            logger.warning(f"No products found for query: {query}")
-            return Response({"results": [], "message": "No products found"})
+            logger.warning(f"No products found for: '{query}'")
+            return Response([])
 
-        # Use asyncio.run() — cleaner than manually managing event loops
-        enriched_products = asyncio.run(enrich_products_async(products))
-
-        cache.set(main_cache_key, enriched_products, timeout=60 * 15)
-        paginated_results = enriched_products[start_index:start_index + limit]
-        cache.set(paginated_cache_key, paginated_results, timeout=60 * 5)
-
-        return Response(paginated_results)
+        cache.set(main_key, products, timeout=900)   # 15 min
+        page = products[start:start + limit]
+        cache.set(paged_key, page, timeout=300)      # 5 min
+        return Response(page)
 
     except Exception as e:
-        logger.error(f"Error processing request for query '{query}': {e}")
-        return Response({"error": "An error occurred while processing your request"}, status=500)
-
-
-def cleanup():
-    """Quit all pooled WebDriver instances on server shutdown."""
-    global driver_pool
-    for driver in driver_pool:
-        try:
-            driver.quit()
-        except Exception:
-            pass
-    driver_pool = []
-    logger.info("WebDriver resources cleaned up")
-
-
-atexit.register(cleanup)
-
-for sig in [signal.SIGINT, signal.SIGTERM]:
-    signal.signal(sig, lambda s, f: (cleanup(), exit(0)))
+        logger.error(f"Unhandled error for query '{query}': {e}")
+        return Response({"error": "Failed to fetch products"}, status=500)

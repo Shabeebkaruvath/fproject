@@ -4,132 +4,93 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 
-const Login = () => {
+const s = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap');
+  .auth-root { min-height: 100vh; background: #f5f4f0; font-family: 'DM Sans',sans-serif; display:flex; align-items:center; justify-content:center; padding: 32px 24px; }
+  .auth-card { background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 24px; width: 100%; max-width: 380px; padding: 40px 32px; }
+  .auth-title { font-size: 26px; font-weight: 300; letter-spacing: -0.03em; color: #1a1a1a; margin: 0 0 6px; }
+  .auth-sub { font-size: 13px; color: #888; margin: 0 0 32px; }
+  .auth-label { display:block; font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: #888; margin-bottom: 8px; }
+  .auth-field { position: relative; margin-bottom: 18px; }
+  .auth-input {
+    width: 100%; font-family: 'DM Sans',sans-serif; font-size: 14px; color: #1a1a1a;
+    background: #f9f8f5; border: 1px solid rgba(0,0,0,0.08); border-radius: 10px;
+    padding: 12px 44px 12px 14px; outline: none; transition: all 0.18s ease; box-sizing: border-box;
+  }
+  .auth-input::placeholder { color: #bbb; }
+  .auth-input:focus { border-color: #1a1a1a; box-shadow: 0 0 0 3px rgba(26,26,26,0.07); background: #fff; }
+  .auth-eye { position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#aaa; padding:0; display:flex; }
+  .auth-eye:hover { color: #1a1a1a; }
+  .auth-error { font-size: 13px; color: #c0392b; background: #fdf2f2; border: 1px solid #f5c6c6; border-radius: 8px; padding: 10px 14px; margin-bottom: 18px; }
+  .auth-submit {
+    width: 100%; padding: 13px; background: #1a1a1a; color: #fff; border: none;
+    border-radius: 10px; font-family: 'DM Sans',sans-serif; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: background 0.15s ease; margin-bottom: 20px;
+  }
+  .auth-submit:hover { background: #333; }
+  .auth-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .auth-footer { font-size: 13px; color: #888; text-align: center; }
+  .auth-footer a { color: #1a1a1a; font-weight: 500; text-decoration: none; }
+  .auth-forgot { display:block; text-align:right; font-size:12px; color:#888; text-decoration:none; margin-bottom:20px; }
+  .auth-forgot:hover { color: #1a1a1a; }
+`;
+
+const ERR_MAP = {
+  'auth/user-not-found': 'No account with this email.',
+  'auth/wrong-password': 'Incorrect password.',
+  'auth/invalid-email': 'Invalid email address.',
+  'auth/invalid-credential': 'Email or password is incorrect.',
+  'auth/network-request-failed': 'Check your internet connection.',
+};
+
+export default function Login() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ email: '', password: '' });
-  const [isLoading, setIsLoading] = useState(false);
+  const [form, setForm] = useState({ email: '', password: '' });
+  const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [showPassword, setShowPassword] = useState(false); // fix: default false = hidden
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  const handle = e => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
 
-  const handleLogin = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
-    setError(null);
-    setIsLoading(true);
+    setError(null); setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      await signInWithEmailAndPassword(auth, form.email, form.password);
       navigate('/');
     } catch (err) {
-      const errorMessages = {
-        'auth/user-not-found': 'No user found with this email.',
-        'auth/network-request-failed': 'Check your internet connection.',
-        'auth/wrong-password': 'Incorrect password.',
-        'auth/invalid-email': 'Invalid email address.',
-        'auth/invalid-credential': 'Invalid email or password.',
-      };
-      setError(errorMessages[err.code] || 'Login failed. Please try again.');
+      setError(ERR_MAP[err.code] || 'Sign in failed. Please try again.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#faebee] to-white py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg transform transition-all hover:scale-[1.01]">
-        <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-[#333d7a]">Welcome Back</h2>
-          <p className="mt-2 text-sm text-[#333d7a]/70">Please sign in to your account</p>
+    <>
+      <style>{s}</style>
+      <div className="auth-root">
+        <div className="auth-card">
+          <h1 className="auth-title">Welcome back</h1>
+          <p className="auth-sub">Sign in to your account</p>
+          <form onSubmit={submit}>
+            {error && <div className="auth-error">{error}</div>}
+            <label className="auth-label">Email</label>
+            <div className="auth-field">
+              <input name="email" type="email" className="auth-input" placeholder="you@example.com" value={form.email} onChange={handle} required disabled={loading} />
+            </div>
+            <label className="auth-label">Password</label>
+            <div className="auth-field">
+              <input name="password" type={showPw ? 'text' : 'password'} className="auth-input" placeholder="••••••••" value={form.password} onChange={handle} required disabled={loading} />
+              <button type="button" className="auth-eye" onClick={() => setShowPw(p => !p)} aria-label={showPw ? 'Hide' : 'Show'}>
+                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+            <Link to="/forgot-password" className="auth-forgot">Forgot password?</Link>
+            <button type="submit" className="auth-submit" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
+          </form>
+          <p className="auth-footer">No account? <Link to="/register">Create one</Link></p>
         </div>
-
-        <form onSubmit={handleLogin} className="mt-8 space-y-6">
-          {error && (
-            <div className="text-red-500 text-sm text-center bg-red-50 p-4 rounded-lg border border-red-200">
-              {error}
-            </div>
-          )}
-
-          <div className="space-y-5">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-[#333d7a] mb-1">
-                Email address
-              </label>
-              <input
-                id="email"
-                type="email"
-                name="email"
-                placeholder="Enter email"
-                value={formData.email}
-                onChange={handleChange}
-                disabled={isLoading}
-                required
-                className="appearance-none rounded-lg relative block w-full px-4 py-3 border border-[#333d7a]/20 placeholder-[#333d7a]/50 text-[#333d7a] focus:outline-none focus:ring-2 focus:ring-[#333d7a]/30 focus:border-[#333d7a] bg-[#faebee]/20 transition-colors duration-200"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-[#333d7a] mb-1">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  name="password"
-                  placeholder="Enter your password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  disabled={isLoading}
-                  required
-                  className="appearance-none rounded-lg relative block w-full px-4 py-3 border border-[#333d7a]/20 placeholder-[#333d7a]/50 text-[#333d7a] focus:outline-none focus:ring-2 focus:ring-[#333d7a]/30 focus:border-[#333d7a] bg-[#faebee]/20 transition-colors duration-200"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#333d7a]/50 hover:text-[#333d7a]"
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-end">
-            <Link to="/forgot-password" className="text-sm text-[#333d7a]/70 hover:text-[#333d7a]">
-              Forgot password?
-            </Link>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-[#333d7a] hover:bg-[#333d7a]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#333d7a] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-          >
-            {isLoading ? (
-              <span className="flex items-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                Signing in...
-              </span>
-            ) : 'Sign in'}
-          </button>
-
-          <div className="text-center text-sm text-[#333d7a]/70">
-            Don't have an account?{' '}
-            <Link to="/register" className="font-medium text-[#333d7a] hover:text-[#333d7a]/80 transition-colors duration-200">
-              Register now
-            </Link>
-          </div>
-        </form>
       </div>
-    </div>
+    </>
   );
-};
-
-export default Login;
+}

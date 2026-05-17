@@ -1,27 +1,23 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import {
-  Search, ShoppingCart, Laptop, Smartphone, Camera,
-  Headphones, Watch, Tv, GamepadIcon, Speaker,
-} from "lucide-react";
+import { Search, ShoppingCart, Laptop, Smartphone, Camera, Headphones, Watch, Tv, Gamepad2, Speaker } from "lucide-react";
 import { auth, db } from "../../firebase/firebase";
 import { collection, addDoc, doc, deleteDoc, getDocs } from "firebase/firestore";
-import { OrbitProgress } from "react-loading-indicators";
 import "./Home.css";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://localhost:8000";
 
-const suggestions = [
+const SUGGESTIONS = [
   { keyword: "Laptops", icon: Laptop },
   { keyword: "Phones", icon: Smartphone },
   { keyword: "Cameras", icon: Camera },
   { keyword: "Headphones", icon: Headphones },
   { keyword: "Smartwatch", icon: Watch },
   { keyword: "Television", icon: Tv },
-  { keyword: "Gaming", icon: GamepadIcon },
+  { keyword: "Gaming", icon: Gamepad2 },
   { keyword: "Speakers", icon: Speaker },
 ];
 
-const Home = () => {
+export default function Home() {
   const [loading, setLoading] = useState(false);
   const [showProducts, setShowProducts] = useState(false);
   const [sortOrder, setSortOrder] = useState("default");
@@ -30,278 +26,169 @@ const Home = () => {
   const [products, setProducts] = useState([]);
   const inputRef = useRef(null);
 
-  // Single source-of-truth for fetching cart — useCallback so it can be
-  // safely listed in dependency arrays without causing infinite loops.
   const fetchCartItems = useCallback(async () => {
     const user = auth.currentUser;
     if (!user) return;
-    const cartRef = collection(db, "users", user.uid, "cart");
     try {
-      const snapshot = await getDocs(cartRef);
-      const items = snapshot.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .filter((item) => item.title); // exclude dummy registration doc
-      setCartItems(items);
-    } catch (error) {
-      console.error("Error fetching cart items:", error);
+      const snap = await getDocs(collection(db, "users", user.uid, "cart"));
+      setCartItems(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(i => i.title));
+    } catch (e) {
+      console.error("Cart fetch error:", e);
     }
   }, []);
 
-  useEffect(() => {
-    fetchCartItems();
-  }, [fetchCartItems]);
+  useEffect(() => { fetchCartItems(); }, [fetchCartItems]);
 
-  // Fix: accept the query string as a parameter so we never read stale state
-  const fetchProducts = async (searchQuery) => {
-    if (!searchQuery) return;
+  const fetchProducts = async (q) => {
+    if (!q) return;
     setLoading(true);
     try {
-      const response = await fetch(
-        `${BACKEND_URL}/api/products/?q=${encodeURIComponent(searchQuery)}`
-      );
-      if (!response.ok) throw new Error("Network response was not ok");
-      const data = await response.json();
-      setProducts(data);
+      const res = await fetch(`${BACKEND_URL}/api/products/?q=${encodeURIComponent(q)}`);
+      if (!res.ok) throw new Error("Bad response");
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : (data.results || []);
+      setProducts(list);
       setShowProducts(true);
-    } catch (error) {
-      console.error("Error fetching data:", error);
+    } catch (e) {
+      console.error("Fetch error:", e);
       setProducts([]);
+      setShowProducts(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = (event) => {
-    const newQuery = event.target.value;
-    setQuery(newQuery);
-    if (newQuery === "") setShowProducts(false);
-  };
-
-  const handleSearchClick = () => {
-    if (query.trim().length > 0) fetchProducts(query.trim());
-  };
-
-  // Fix: pass keyword directly — don't rely on query state update being synchronous
-  const handleKeyword = (keyword) => {
-    setQuery(keyword);
-    fetchProducts(keyword);
-  };
-
-  const handleKeyDown = (event) => {
-    if (event.key === "Enter") handleSearchClick();
-  };
-
-  const handleSort = (event) => {
-    const order = event.target.value;
+  const handleSort = (e) => {
+    const order = e.target.value;
     setSortOrder(order);
     const sorted = [...products].sort((a, b) => {
-      const priceA = parseFloat(a.price.replace(/[^0-9.-]+/g, ""));
-      const priceB = parseFloat(b.price.replace(/[^0-9.-]+/g, ""));
-      if (order === "lowToHigh") return priceA - priceB;
-      if (order === "highToLow") return priceB - priceA;
+      const pa = parseFloat((a.price || "0").replace(/[^0-9.-]+/g, ""));
+      const pb = parseFloat((b.price || "0").replace(/[^0-9.-]+/g, ""));
+      if (order === "lowToHigh") return pa - pb;
+      if (order === "highToLow") return pb - pa;
       return 0;
     });
     setProducts(sorted);
   };
 
-  const isProductInCart = (productName) =>
-    cartItems.some((item) => item.title === productName);
-
   const toggleCart = async (product) => {
-    if (!product?.id) {
-      product.id = product.buy_url
-        ? product.buy_url.split("?")[0]
-        : product.name.replace(/\s+/g, "-").toLowerCase();
-    }
-
     const user = auth.currentUser;
     if (!user) return;
-
-    const cartRef = collection(db, "users", user.uid, "cart");
-    const productInCart = cartItems.find((item) => item.title === product.name);
-    const isInCart = !!productInCart;
-
-    // Optimistic update
-    if (isInCart) {
-      setCartItems((prev) => prev.filter((item) => item.title !== product.name));
+    const inCartItem = cartItems.find(i => i.title === product.name);
+    if (inCartItem) {
+      setCartItems(prev => prev.filter(i => i.title !== product.name));
+      try { await deleteDoc(doc(db, "users", user.uid, "cart", inCartItem.id)); }
+      catch (e) { fetchCartItems(); }
     } else {
-      const newItem = {
-        productId: product.id,
-        imgUrl: product.image,
-        title: product.name,
-        price: product.price,
-        buyUrl: product.buy_url,
-      };
-      setCartItems((prev) => [...prev, newItem]);
-    }
-
-    try {
-      if (isInCart) {
-        await deleteDoc(doc(db, "users", user.uid, "cart", productInCart.id));
-      } else {
-        const docRef = await addDoc(cartRef, {
-          productId: product.id,
-          imgUrl: product.image,
-          title: product.name,
-          price: product.price,
-          buyUrl: product.buy_url,
-        });
-        setCartItems((prev) =>
-          prev.map((item) =>
-            item.title === product.name ? { ...item, id: docRef.id } : item
-          )
-        );
-      }
-    } catch (error) {
-      console.error("Error updating cart:", error);
-      fetchCartItems(); // revert optimistic update
+      const newItem = { productId: product.id || product.name, imgUrl: product.image, title: product.name, price: product.price, buyUrl: product.buy_url };
+      setCartItems(prev => [...prev, newItem]);
+      try {
+        const ref = await addDoc(collection(db, "users", user.uid, "cart"), newItem);
+        setCartItems(prev => prev.map(i => i.title === product.name ? { ...i, id: ref.id } : i));
+      } catch (e) { fetchCartItems(); }
     }
   };
 
-  const shouldShowSuggestions = query === "" && !loading && !showProducts;
+  const compact = showProducts || loading;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div
-        className={`w-full ${
-          !showProducts
-            ? "h-[calc(100vh-144px)] md:h-[calc(100vh-72px)]"
-            : "h-24"
-        } flex flex-col items-center justify-center fixed top-[72px] left-0 right-0 bg-white/80 backdrop-blur-md z-40 transition-all duration-300 px-4`}
-      >
-        <div className="relative w-full max-w-md">
-          <input
-            type="text"
-            className="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Search products..."
-            value={query}
-            onChange={handleSearch}
-            onKeyDown={handleKeyDown}
-            ref={inputRef}
-          />
-          <button
-            onClick={handleSearchClick}
-            className="absolute right-2 top-2 p-2 text-gray-600 hover:text-gray-800"
-            aria-label="Search"
-          >
-            <Search size={18} />
-          </button>
-        </div>
-
-        {shouldShowSuggestions && (
-          <div className="mt-4 flex flex-wrap justify-center gap-4">
-            {suggestions.map((suggestion) => {
-              const Icon = suggestion.icon;
-              return (
-                <button
-                  key={suggestion.keyword}
-                  onClick={() => handleKeyword(suggestion.keyword)}
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-100 transition duration-200 ease-in-out"
-                >
-                  <Icon size={16} />
-                  <span className="font-medium">{suggestion.keyword}</span>
-                </button>
-              );
-            })}
+    <div className="sn-root">
+      <div className={`sn-hero ${compact ? "compact" : "expanded"}`}>
+        <div className="sn-hero-inner">
+          {!compact && <p className="sn-eyebrow">ShopNest — Find anything</p>}
+          {!compact && (
+            <h1 className="sn-headline">
+              What are you<br />looking for?
+            </h1>
+          )}
+          <div className="sn-search-wrap">
+            <input
+              ref={inputRef}
+              type="text"
+              className="sn-search-input"
+              placeholder="Search products…"
+              value={query}
+              onChange={e => { setQuery(e.target.value); if (!e.target.value) setShowProducts(false); }}
+              onKeyDown={e => e.key === "Enter" && fetchProducts(query.trim())}
+            />
+            <button className="sn-search-btn" onClick={() => fetchProducts(query.trim())} aria-label="Search">
+              <Search size={15} strokeWidth={2.2} />
+            </button>
           </div>
-        )}
+          {!compact && (
+            <div className="sn-chips">
+              {SUGGESTIONS.map(({ keyword, icon: Icon }) => (
+                <button key={keyword} className="sn-chip" onClick={() => { setQuery(keyword); fetchProducts(keyword); }}>
+                  <Icon size={14} strokeWidth={1.8} />
+                  {keyword}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      <div
-        className={`w-full max-w-6xl mx-auto ${
-          showProducts ? "pt-32" : ""
-        } pb-24 md:pb-8`}
-      >
+      <div className={`sn-content ${compact ? "with-results" : "without-results"}`}>
         {loading && (
-          <div className="flex justify-center items-center h-48">
-            <OrbitProgress variant="dotted" color="#0395e3" size="medium" />
+          <div className="sn-loader">
+            <div className="sn-loader-dots">
+              <div className="sn-loader-dot" />
+              <div className="sn-loader-dot" />
+              <div className="sn-loader-dot" />
+            </div>
+            <p className="sn-loader-text">Searching across the web…</p>
           </div>
         )}
 
-        {showProducts && products.length > 0 && (
-          <div className="px-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Products</h2>
-              <select
-                value={sortOrder}
-                onChange={handleSort}
-                className="p-2 border border-gray-300 rounded"
-              >
-                <option value="default">Default Sorting</option>
-                <option value="highToLow">Price: High to Low</option>
+        {showProducts && !loading && (
+          <>
+            <div className="sn-toolbar">
+              <span className="sn-result-count">{products.length} results for "{query}"</span>
+              <select className="sn-sort" value={sortOrder} onChange={handleSort}>
+                <option value="default">Relevance</option>
                 <option value="lowToHigh">Price: Low to High</option>
+                <option value="highToLow">Price: High to Low</option>
               </select>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8">
-              {products.map((product, index) => {
-                const { image, name, price, buy_url, source } = product;
-                const inCart = isProductInCart(name);
-                return (
-                  <div
-                    key={product.id || index}
-                    className="bg-white rounded-lg shadow-lg transition-transform duration-300 transform hover:scale-105 relative group overflow-hidden"
-                  >
-                    {image && (
-                      <img
-                        src={image}
-                        alt={name}
-                        className="w-full h-48 object-contain transition-transform duration-300 group-hover:scale-90"
-                      />
-                    )}
-                    <div className="p-4">
-                      <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                        {name.length > 50 ? `${name.slice(0, 50)}...` : name}
-                      </h3>
-                      <p className="text-xl font-semibold text-gray-900 mb-4">
-                        {price}
-                      </p>
-                      <div className="flex justify-evenly items-center">
-                        <a
-                          href={buy_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-block px-5 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg shadow hover:bg-blue-700 transition duration-300"
-                          aria-label={`View details for ${name}`}
-                        >
-                          View Details
-                        </a>
-                        <button
-                          onClick={() => toggleCart(product)}
-                          className={`p-2 rounded-lg transition-colors duration-300 border-2 ${
-                            inCart
-                              ? "border-blue-600 bg-blue-600 text-white hover:bg-blue-700"
-                              : "border-gray-300 bg-white text-gray-900 hover:bg-gray-100"
-                          }`}
-                          aria-label={inCart ? "Remove from cart" : "Add to cart"}
-                        >
-                          <ShoppingCart
-                            size={20}
-                            className={`transition-colors duration-300 ${
-                              inCart ? "stroke-white" : "stroke-gray-600"
-                            }`}
-                          />
-                        </button>
+            {products.length === 0 ? (
+              <div className="sn-empty">
+                <div className="sn-empty-icon">∅</div>
+                <p className="sn-empty-text">No products found. Try a different search.</p>
+              </div>
+            ) : (
+              <div className="sn-grid">
+                {products.map((product, i) => {
+                  const inCart = cartItems.some(c => c.title === product.name);
+                  return (
+                    <div className="sn-card" key={product.id || i}>
+                      <div className="sn-card-img-wrap">
+                        {product.image
+                          ? <img src={product.image} alt={product.name} className="sn-card-img" loading="lazy" />
+                          : <span style={{ fontSize: 32, opacity: 0.15 }}>📦</span>
+                        }
                       </div>
-                      <p className="mt-4 text-sm text-gray-500 italic">
-                        Source: {source}
-                      </p>
+                      <div className="sn-card-body">
+                        <p className="sn-card-name">{product.name}</p>
+                        <p className="sn-card-source">{product.source}</p>
+                        <div className="sn-card-footer">
+                          <span className="sn-card-price">{product.price}</span>
+                          <div className="sn-card-actions">
+                            <a href={product.buy_url} target="_blank" rel="noopener noreferrer" className="sn-btn-view">View</a>
+                            <button className={`sn-btn-cart ${inCart ? "in-cart" : ""}`} onClick={() => toggleCart(product)} aria-label={inCart ? "Remove from cart" : "Add to cart"}>
+                              <ShoppingCart size={14} strokeWidth={2} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {showProducts && products.length === 0 && !loading && (
-          <div className="flex justify-center items-center h-48">
-            <p className="text-gray-600">No products found.</p>
-          </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
   );
-};
-
-export default Home;
+}

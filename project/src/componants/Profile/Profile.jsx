@@ -1,94 +1,89 @@
-import { useState, useEffect } from "react";
-import { ShoppingCart, LogOut } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { ShoppingCart, LogOut, ChevronRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../firebase/firebase";
 
-const AVATAR_URL = "https://img.icons8.com/?size=100&id=z-JBA_KtSkxG&format=png&color=000000";
+const s = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap');
+  .prof-root { min-height: 100vh; background: #f5f4f0; font-family: 'DM Sans',sans-serif; display: flex; align-items: center; justify-content: center; padding: 32px 24px; }
+  .prof-card { background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 24px; width: 100%; max-width: 380px; overflow: hidden; }
+  .prof-top { padding: 32px 28px 24px; border-bottom: 1px solid rgba(0,0,0,0.06); }
+  .prof-avatar { width: 56px; height: 56px; border-radius: 50%; background: #1a1a1a; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 500; color: #fff; margin-bottom: 16px; letter-spacing: -0.02em; }
+  .prof-name { font-size: 20px; font-weight: 500; color: #1a1a1a; letter-spacing: -0.02em; margin: 0 0 4px; }
+  .prof-email { font-size: 13px; color: #888; font-weight: 400; margin: 0; }
+  .prof-meta { padding: 0 28px 8px; }
+  .prof-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid rgba(0,0,0,0.05); font-size: 14px; }
+  .prof-row:last-child { border-bottom: none; }
+  .prof-row-label { color: #888; font-weight: 400; }
+  .prof-row-val { color: #1a1a1a; font-weight: 400; }
+  .prof-actions { padding: 8px 16px 20px; display: flex; flex-direction: column; gap: 8px; }
+  .prof-btn {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-radius: 12px; font-family: 'DM Sans',sans-serif;
+    font-size: 14px; font-weight: 400; text-decoration: none;
+    border: 1px solid rgba(0,0,0,0.08); cursor: pointer;
+    transition: all 0.15s ease; background: transparent; width: 100%; color: #1a1a1a;
+  }
+  .prof-btn:hover { background: #f5f4f0; }
+  .prof-btn.logout { color: #c0392b; }
+  .prof-btn-left { display: flex; align-items: center; gap: 10px; }
+`;
 
-function Profile() {
+const initials = (email) => email ? email.slice(0, 2).toUpperCase() : "??";
+
+export default function Profile() {
   const navigate = useNavigate();
-  const [userEmail, setUserEmail] = useState(null);
-  const [username, setUsername] = useState(null);
-  const [lastLogin, setLastLogin] = useState(null);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUserEmail(user.email);
-        // Firebase Auth stores the display name in user.displayName (not user.name)
-        setUsername(user.displayName || user.email.split('@')[0]);
-        setLastLogin(
-          user.metadata.lastSignInTime
-            ? new Date(user.metadata.lastSignInTime).toLocaleDateString('en-US', {
-                year: 'numeric', month: 'long', day: 'numeric',
-              })
-            : null
-        );
-      } else {
-        navigate('/login');
-      }
-    });
-    return () => unsubscribe();
+    return onAuthStateChanged(auth, u => { if (u) setUser(u); else navigate("/login"); });
   }, [navigate]);
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate("/login");
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
+    await signOut(auth).catch(console.error);
+    navigate("/login");
   };
 
+  const displayName = user?.displayName || user?.email?.split("@")[0] || "User";
+  const lastLogin = user?.metadata?.lastSignInTime
+    ? new Date(user.metadata.lastSignInTime).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })
+    : null;
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-white">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-4 sm:p-6">
-        <div className="flex flex-col items-center sm:flex-row sm:items-start sm:space-x-4 mb-4">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-2 border-[#e0e0e0] shadow-sm transition-transform duration-300 hover:scale-105">
-            <img src={AVATAR_URL} alt={username || "User"} className="w-full h-full object-cover" />
+    <>
+      <style>{s}</style>
+      <div className="prof-root">
+        <div className="prof-card">
+          <div className="prof-top">
+            <div className="prof-avatar">{user ? initials(user.email) : "…"}</div>
+            <p className="prof-name">{displayName}</p>
+            <p className="prof-email">{user?.email}</p>
           </div>
-          <div className="mt-2 sm:mt-0 flex flex-col items-center sm:items-start sm:ml-4">
-            <h2 className="text-lg sm:text-xl font-semibold text-[#2e4156]">
-              {username || "Loading..."}
-            </h2>
-          </div>
-        </div>
-
-        <div className="bg-[#f5f5f5] p-3 sm:p-4 rounded-lg border border-[#e0e0e0]">
-          <div className="space-y-2">
-            <p className="text-[#666666] text-xs sm:text-sm">
-              <span className="font-medium text-[#2e4156]">Email:</span>{" "}
-              {userEmail || "Loading..."}
-            </p>
+          <div className="prof-meta">
             {lastLogin && (
-              <p className="text-[#666666] text-xs sm:text-sm">
-                <span className="font-medium text-[#2e4156]">Last Login:</span>{" "}
-                {lastLogin}
-              </p>
+              <div className="prof-row">
+                <span className="prof-row-label">Last login</span>
+                <span className="prof-row-val">{lastLogin}</span>
+              </div>
             )}
+            <div className="prof-row">
+              <span className="prof-row-label">Account</span>
+              <span className="prof-row-val">Standard</span>
+            </div>
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 sm:gap-4 mt-4">
-          <Link
-            to="/cart"
-            className="flex items-center justify-center space-x-2 p-2 bg-[#f5f5f5] hover:bg-[#e0e0e0] rounded-lg transition-all duration-300 text-[#2e4156] border border-[#e0e0e0] hover:border-[#cccccc]"
-          >
-            <ShoppingCart className="text-[#64b5f6]" size={20} />
-            <span className="text-xs sm:text-sm font-medium">Cart</span>
-          </Link>
-          <button
-            onClick={handleLogout}
-            className="flex items-center justify-center space-x-2 p-2 bg-[#f5f5f5] hover:bg-[#e0e0e0] rounded-lg transition-all duration-300 text-[#2e4156] border border-[#e0e0e0] hover:border-[#cccccc]"
-          >
-            <LogOut className="text-[#64b5f6]" size={20} />
-            <span className="text-xs sm:text-sm font-medium">Log Out</span>
-          </button>
+          <div className="prof-actions">
+            <Link to="/cart" className="prof-btn">
+              <span className="prof-btn-left"><ShoppingCart size={16} strokeWidth={1.8} /> Cart</span>
+              <ChevronRight size={16} color="#ccc" />
+            </Link>
+            <button className="prof-btn logout" onClick={handleLogout}>
+              <span className="prof-btn-left"><LogOut size={16} strokeWidth={1.8} /> Sign out</span>
+              <ChevronRight size={16} color="#ecc" />
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
-
-export default Profile;

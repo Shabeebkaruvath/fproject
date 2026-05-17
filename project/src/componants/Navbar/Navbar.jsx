@@ -1,147 +1,106 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Home, User, MessageCircle, ShoppingCart } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
-const Navbar = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
+const NAV = [
+  { to: '/', icon: Home, label: 'Home' },
+  { to: '/profile', icon: User, label: 'Profile' },
+  { to: '/cart', icon: ShoppingCart, label: 'Cart' },
+  { to: '/feedback', icon: MessageCircle, label: 'Feedback' },
+];
+
+const style = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap');
+  .sn-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    height: 64px;
+    background: rgba(245,244,240,0.88);
+    backdrop-filter: blur(20px) saturate(1.8);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8);
+    border-bottom: 1px solid rgba(0,0,0,0.07);
+    display: flex; align-items: center;
+    font-family: 'DM Sans', -apple-system, sans-serif;
+  }
+  .sn-nav-inner {
+    max-width: 1200px; margin: 0 auto; width: 100%;
+    padding: 0 24px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .sn-logo {
+    display: flex; align-items: center; gap: 6px;
+    text-decoration: none;
+    font-size: 17px; font-weight: 500; letter-spacing: -0.02em;
+    color: #1a1a1a;
+  }
+  .sn-logo-dot { color: #6b6b6b; font-weight: 300; }
+  .sn-links { display: flex; align-items: center; gap: 4px; }
+  .sn-link {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 13px; border-radius: 10px;
+    font-size: 13.5px; font-weight: 400;
+    color: #6b6b6b; text-decoration: none;
+    transition: all 0.18s ease;
+    border: 1px solid transparent;
+  }
+  .sn-link:hover { color: #1a1a1a; background: rgba(0,0,0,0.04); }
+  .sn-link.active {
+    color: #1a1a1a; font-weight: 500;
+    background: #fff; border-color: rgba(0,0,0,0.08);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .sn-mobile-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    background: rgba(245,244,240,0.94);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(0,0,0,0.07);
+    display: grid; grid-template-columns: repeat(4,1fr);
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .sn-mobile-link {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 4px;
+    padding: 12px 4px;
+    font-size: 10px; font-weight: 400;
+    color: #aaa; text-decoration: none;
+    transition: color 0.18s ease;
+  }
+  .sn-mobile-link.active { color: #1a1a1a; font-weight: 500; }
+  .sn-mobile-link svg { transition: transform 0.18s ease; }
+  .sn-mobile-link.active svg { transform: scale(1.1); }
+  @media (max-width: 640px) { .sn-links { display: none; } }
+  @media (min-width: 641px) { .sn-mobile-bar { display: none; } }
+`;
+
+export default function Navbar() {
   const location = useLocation();
-  
-  const navItems = [
-    { to: '/', icon: Home, label: 'Home' },
-    { to: '/profile', icon: User, label: 'Profile' },
-    { to: '/cart', icon: ShoppingCart, label: 'Cart' },
-    { to: '/feedback', icon: MessageCircle, label: 'Feedback' },
-  ];
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   return (
     <>
-      {/* Desktop Navbar */}
-      <nav className={`
-        fixed top-0 left-0 w-full z-50 transition-all duration-300
-        ${isScrolled ? 'bg-black/80 backdrop-blur-lg' : 'bg-black/80'}
-        hidden md:flex
-      `}>
-        <div className="container mx-auto">
-          <div className="flex justify-between items-center p-4">
-            <Link
-              to="/"
-              className="text-3xl text-white font-['Inter'] flex items-center gap-3 group"
-              aria-label="Go to Home"
-            >
-             <span>Shop<span className='text-blue-500'>Nest</span></span>
-              <ShoppingCart className="transform group-hover:rotate-12 transition-transform duration-200 text-blue-500" size={30} />
-            </Link>
-            
-            <div className="flex items-center gap-6">
-              {navItems.map(({ to, icon: Icon, label }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  className={`
-                    relative group flex items-center gap-2 px-4 py-2
-                    text-gray-200 hover:text-white transition-colors duration-300
-                    ${location.pathname === to ? 'text-white' : ''}
-                    rounded-md
-                  `}
-                  aria-label={label}
-                >
-                  <Icon className={`
-                    transform group-hover:scale-110 transition-all duration-300
-                    ${location.pathname === to ? 'text-blue-400' : ''}
-                  `} size={20} />
-                  <span className="relative">
-                    {label}
-                    <span className={`
-                      absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-400
-                      group-hover:w-full transition-all duration-300
-                      ${location.pathname === to ? 'w-full' : ''}
-                    `}></span>
-                  </span>
-                </Link>
-              ))}
-            </div>
+      <style>{style}</style>
+      <nav className="sn-nav">
+        <div className="sn-nav-inner">
+          <Link to="/" className="sn-logo">
+            Shop<span className="sn-logo-dot">Nest</span>
+          </Link>
+          <div className="sn-links">
+            {NAV.map(({ to, icon: Icon, label }) => (
+              <Link key={to} to={to} className={`sn-link ${location.pathname === to ? "active" : ""}`}>
+                <Icon size={16} strokeWidth={location.pathname === to ? 2 : 1.8} />
+                {label}
+              </Link>
+            ))}
           </div>
         </div>
       </nav>
-
-      {/* Mobile Top Bar */}
-      <div className={`
-        md:hidden fixed top-0 left-0 w-full z-50 
-        transition-all duration-300
-        ${isScrolled ? 'bg-black/80 backdrop-blur-lg' : 'bg-[#2e4156]'}
-      `}>
-        <div className="flex justify-center items-center p-4">
-          <Link
-            to="/"
-            className="text-2xl text-white font-['Inter'] flex items-center gap-2 group"
-            aria-label="Go to Home"
-          >
-            <span>Shop<span className='text-blue-500'>Nest</span></span>
-            <ShoppingCart className="transform group-hover:rotate-12 transition-transform duration-300 text-blue-500" size={24} />
+      <div className="sn-mobile-bar">
+        {NAV.map(({ to, icon: Icon, label }) => (
+          <Link key={to} to={to} className={`sn-mobile-link ${location.pathname === to ? "active" : ""}`}>
+            <Icon size={22} strokeWidth={location.pathname === to ? 2 : 1.6} />
+            {label}
           </Link>
-        </div>
+        ))}
       </div>
-
-      {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-black/80 backdrop-blur-lg z-50">
-        <div className="grid grid-cols-4 gap-1">
-        {navItems.map(({ to, icon: Icon, label }) => {
-            const isActive = location.pathname === to;
-            return (
-              <Link
-                key={to}
-                to={to}
-                className={`
-                  relative flex flex-col items-center justify-center
-                  py-3 px-2 group
-                  ${isActive ? 'text-blue-400' : 'text-gray-400'}
-                `}
-                aria-label={label}
-              >
-                <div className={`
-                  absolute -top-3 left-1/2 transform -translate-x-1/2
-                  w-12 h-12 bg-blue-500/10 rounded-full scale-0
-                  group-hover:scale-100 transition-transform duration-300
-                  ${isActive ? 'scale-100' : ''}
-                `}></div>
-                <Icon size={24} className={`
-                  relative transform transition-all duration-300
-                  group-hover:scale-110 group-hover:-translate-y-1
-                  ${isActive ? 'scale-110 -translate-y-1' : ''}
-                `} />
-                <span className={`
-                  mt-1 text-xs transform transition-all duration-300
-                  group-hover:scale-110 group-hover:-translate-y-1
-                  ${isActive ? 'scale-110 -translate-y-1' : ''}
-                `}>
-                  {label}
-                </span>
-                <div className={`
-                  absolute bottom-0 left-1/2 transform -translate-x-1/2
-                  w-12 h-0.5 bg-blue-400 rounded-full scale-x-0
-                  group-hover:scale-x-100 transition-transform duration-300
-                  ${isActive ? 'scale-x-100' : ''}
-                `}></div>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-
-      {/* Spacer divs */}
-      <div className="h-[72px]"></div> {/* For desktop navbar */}
-      <div className="md:hidden h-[72px]"></div> {/* For mobile top bar */}
     </>
   );
-};
-
-export default Navbar;
-
+}

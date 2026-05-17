@@ -5,151 +5,77 @@ import { doc, setDoc } from 'firebase/firestore';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 
-const InputField = ({ id, type, name, placeholder, value, onChange, disabled, showPasswordToggle, toggleShowPassword }) => (
-  <div>
-    <label htmlFor={id} className="block text-sm font-medium text-[#0b1956] mb-1">
-      {placeholder}
-    </label>
-    <div className="relative">
-      <input
-        id={id}
-        type={type}
-        name={name}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
-        required
-        className="appearance-none rounded-lg block w-full px-4 py-3 border border-[#0b1956]/20 placeholder-[#0b1956]/50 text-[#0b1956] focus:outline-none focus:ring-2 focus:ring-[#0b1956]/30 focus:border-[#0b1956] bg-[#faf3eb]/30 transition-colors duration-200"
-      />
-      {showPasswordToggle && (
-        <button
-          type="button"
-          onClick={toggleShowPassword}
-          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#0b1956]/50 hover:text-[#0b1956]"
-          aria-label={type === 'text' ? 'Hide password' : 'Show password'}
-        >
-          {type === 'text' ? <EyeOff size={20} /> : <Eye size={20} />}
-        </button>
-      )}
-    </div>
-  </div>
-);
+const s = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap');
+  .auth-root { min-height:100vh; background:#f5f4f0; font-family:'DM Sans',sans-serif; display:flex; align-items:center; justify-content:center; padding:32px 24px; }
+  .auth-card { background:#fff; border:1px solid rgba(0,0,0,0.07); border-radius:24px; width:100%; max-width:380px; padding:40px 32px; }
+  .auth-title { font-size:26px; font-weight:300; letter-spacing:-0.03em; color:#1a1a1a; margin:0 0 6px; }
+  .auth-sub { font-size:13px; color:#888; margin:0 0 32px; }
+  .auth-label { display:block; font-size:12px; font-weight:500; letter-spacing:0.06em; text-transform:uppercase; color:#888; margin-bottom:8px; }
+  .auth-field { position:relative; margin-bottom:18px; }
+  .auth-input { width:100%; font-family:'DM Sans',sans-serif; font-size:14px; color:#1a1a1a; background:#f9f8f5; border:1px solid rgba(0,0,0,0.08); border-radius:10px; padding:12px 44px 12px 14px; outline:none; transition:all 0.18s ease; box-sizing:border-box; }
+  .auth-input::placeholder { color:#bbb; }
+  .auth-input:focus { border-color:#1a1a1a; box-shadow:0 0 0 3px rgba(26,26,26,0.07); background:#fff; }
+  .auth-eye { position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#aaa; padding:0; display:flex; }
+  .auth-eye:hover { color:#1a1a1a; }
+  .auth-error { font-size:13px; color:#c0392b; background:#fdf2f2; border:1px solid #f5c6c6; border-radius:8px; padding:10px 14px; margin-bottom:18px; }
+  .auth-submit { width:100%; padding:13px; background:#1a1a1a; color:#fff; border:none; border-radius:10px; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:500; cursor:pointer; transition:background 0.15s ease; margin-bottom:20px; }
+  .auth-submit:hover { background:#333; }
+  .auth-submit:disabled { opacity:0.5; cursor:not-allowed; }
+  .auth-footer { font-size:13px; color:#888; text-align:center; }
+  .auth-footer a { color:#1a1a1a; font-weight:500; text-decoration:none; }
+`;
 
-const RegisterForm = () => {
+export default function Register() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ email: '', password: '', confirmPassword: '' });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [form, setForm] = useState({ email: '', password: '', confirm: '' });
+  const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  const handle = e => setForm(p => ({ ...p, [e.target.name]: e.target.value }));
 
-  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).toLowerCase());
-
-  const handleRegister = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     setError(null);
-
-    if (!isValidEmail(formData.email)) {
-      setError('Please enter a valid email address.');
-      return;
-    }
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters.');
-      return;
-    }
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-
-    setIsLoading(true);
+    if (form.password.length < 6) return setError('Password must be at least 6 characters.');
+    if (form.password !== form.confirm) return setError('Passwords do not match.');
+    setLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      const userId = userCredential.user.uid;
-      const timestamp = new Date().toISOString();
-
-      // Create user document only — no dummy cart document
-      await setDoc(doc(db, 'users', userId), {
-        email: formData.email,
-        createdAt: timestamp,
-        updatedAt: timestamp,
-        userId,
-        isActive: true,
-        role: 'user',
-      });
-
+      const { user } = await createUserWithEmailAndPassword(auth, form.email, form.password);
+      await setDoc(doc(db, 'users', user.uid), { email: form.email, createdAt: new Date().toISOString(), userId: user.uid });
       navigate('/');
     } catch (err) {
-      const errorMessages = {
-        'auth/email-already-in-use': 'This email is already registered.',
-        'auth/invalid-email': 'Invalid email address.',
-        'auth/weak-password': 'Password should be at least 6 characters.',
-        'permission-denied': 'Permission denied. Please check your Firebase security rules.',
-      };
-      setError(errorMessages[err.code] || 'Registration failed. Please try again.');
+      const map = { 'auth/email-already-in-use': 'This email is already registered.', 'auth/invalid-email': 'Invalid email address.', 'auth/weak-password': 'Password is too weak.' };
+      setError(map[err.code] || 'Registration failed. Please try again.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#faf3eb] to-white py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg transform transition-all hover:scale-[1.01]">
-        <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-[#0b1956]">Create Account</h2>
-          <p className="mt-2 text-sm text-[#0b1956]/70">Join us today and get started</p>
-        </div>
-
-        <form onSubmit={handleRegister} className="mt-8 space-y-6">
-          {error && (
-            <div className="text-red-500 text-sm text-center bg-red-50 p-4 rounded-lg border border-red-200">
-              {error}
+    <>
+      <style>{s}</style>
+      <div className="auth-root">
+        <div className="auth-card">
+          <h1 className="auth-title">Create account</h1>
+          <p className="auth-sub">Join ShopNest today</p>
+          <form onSubmit={submit}>
+            {error && <div className="auth-error">{error}</div>}
+            <label className="auth-label">Email</label>
+            <div className="auth-field"><input name="email" type="email" className="auth-input" placeholder="you@example.com" value={form.email} onChange={handle} required disabled={loading} /></div>
+            <label className="auth-label">Password</label>
+            <div className="auth-field">
+              <input name="password" type={showPw ? 'text' : 'password'} className="auth-input" placeholder="Min. 6 characters" value={form.password} onChange={handle} required disabled={loading} />
+              <button type="button" className="auth-eye" onClick={() => setShowPw(p => !p)}>{showPw ? <EyeOff size={16} /> : <Eye size={16} />}</button>
             </div>
-          )}
-
-          <div className="space-y-5">
-            <InputField id="email" type="email" name="email" placeholder="Enter your email"
-              value={formData.email} onChange={handleChange} disabled={isLoading} />
-            <InputField id="password" type={showPassword ? 'text' : 'password'} name="password"
-              placeholder="Create a strong password" value={formData.password} onChange={handleChange}
-              disabled={isLoading} showPasswordToggle toggleShowPassword={() => setShowPassword(!showPassword)} />
-            <InputField id="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} name="confirmPassword"
-              placeholder="Confirm your password" value={formData.confirmPassword} onChange={handleChange}
-              disabled={isLoading} showPasswordToggle toggleShowPassword={() => setShowConfirmPassword(!showConfirmPassword)} />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-[#0b1956] hover:bg-[#0b1956]/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0b1956] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-          >
-            {isLoading ? (
-              <span className="flex items-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                Creating account...
-              </span>
-            ) : 'Create Account'}
-          </button>
-
-          <div className="text-center text-sm text-[#0b1956]/70">
-            Already have an account?{' '}
-            <Link to="/login" className="font-medium text-[#0b1956] hover:text-[#0b1956]/80 transition-colors duration-200">
-              Sign in
-            </Link>
-          </div>
-        </form>
+            <label className="auth-label">Confirm password</label>
+            <div className="auth-field"><input name="confirm" type={showPw ? 'text' : 'password'} className="auth-input" placeholder="Repeat password" value={form.confirm} onChange={handle} required disabled={loading} /></div>
+            <button type="submit" className="auth-submit" disabled={loading}>{loading ? 'Creating account…' : 'Create account'}</button>
+          </form>
+          <p className="auth-footer">Have an account? <Link to="/login">Sign in</Link></p>
+        </div>
       </div>
-    </div>
+    </>
   );
-};
-
-export default RegisterForm;
+}

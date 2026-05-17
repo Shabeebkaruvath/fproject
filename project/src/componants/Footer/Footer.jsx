@@ -1,25 +1,24 @@
 import React from 'react';
-import { ShoppingCart } from 'lucide-react';
 
-function Footer() {
-  const currentYear = new Date().getFullYear();
-  
+const s = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap');
+  .sn-footer { background: #f5f4f0; border-top: 1px solid rgba(0,0,0,0.07); padding: 20px 24px; font-family: 'DM Sans',sans-serif; display:none; }
+  .sn-footer-inner { max-width: 1200px; margin: 0 auto; display:flex; align-items:center; justify-content:space-between; }
+  .sn-footer-logo { font-size: 14px; font-weight: 500; color: #1a1a1a; letter-spacing: -0.01em; }
+  .sn-footer-copy { font-size: 12px; color: #aaa; }
+  @media (min-width: 641px) { .sn-footer { display: block; } }
+`;
+
+export default function Footer() {
   return (
-    <footer className="hidden md:block bg-black/80 py-6 border-t border-gray-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-row justify-between items-center">
-          <div className="flex items-center gap-1">
-            <span className="text-white">Shop</span>
-            <span className="text-blue-500 font-semibold">Nest</span>
-            <ShoppingCart className="text-blue-500 h-5 w-5 ml-1" />
-          </div>
-          <p className="text-gray-400 text-sm">
-            &copy; {currentYear} ShopNest. All rights reserved.
-          </p>
+    <>
+      <style>{s}</style>
+      <footer className="sn-footer">
+        <div className="sn-footer-inner">
+          <span className="sn-footer-logo">ShopNest</span>
+          <span className="sn-footer-copy">© {new Date().getFullYear()}</span>
         </div>
-      </div>
-    </footer>
+      </footer>
+    </>
   );
 }
-
-export default Footer;

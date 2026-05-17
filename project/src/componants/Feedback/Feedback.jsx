@@ -1,45 +1,81 @@
-import React from 'react';
-import { MessageCircle } from 'lucide-react';
+import React, { useState } from 'react';
 
-function Feedback() {
-   
+const s = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap');
+  .fb-root { min-height: 100vh; background: #f5f4f0; font-family: 'DM Sans',sans-serif; display:flex; align-items:center; justify-content:center; padding: 32px 24px 100px; }
+  .fb-card { background: #fff; border: 1px solid rgba(0,0,0,0.07); border-radius: 24px; width: 100%; max-width: 420px; padding: 36px 32px; }
+  .fb-title { font-size: 24px; font-weight: 300; letter-spacing: -0.03em; color: #1a1a1a; margin: 0 0 6px; }
+  .fb-sub { font-size: 13px; color: #888; margin: 0 0 28px; }
+  .fb-label { display:block; font-size: 12px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; color: #888; margin-bottom: 8px; }
+  .fb-input, .fb-textarea {
+    width: 100%; font-family: 'DM Sans',sans-serif; font-size: 14px; font-weight: 400;
+    color: #1a1a1a; background: #f9f8f5; border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 10px; padding: 12px 14px; outline: none;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease; margin-bottom: 18px; box-sizing: border-box;
+  }
+  .fb-input::placeholder, .fb-textarea::placeholder { color: #bbb; }
+  .fb-input:focus, .fb-textarea:focus { border-color: #1a1a1a; box-shadow: 0 0 0 3px rgba(26,26,26,0.07); background: #fff; }
+  .fb-textarea { min-height: 130px; resize: vertical; }
+  .fb-submit {
+    width: 100%; padding: 13px; background: #1a1a1a; color: #fff;
+    border: none; border-radius: 10px; font-family: 'DM Sans',sans-serif;
+    font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s ease;
+  }
+  .fb-submit:hover { background: #333; }
+  .fb-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .fb-sent { text-align: center; padding: 40px 0; }
+  .fb-sent-icon { font-size: 36px; margin-bottom: 12px; }
+  .fb-sent-text { font-size: 16px; font-weight: 400; color: #1a1a1a; margin: 0 0 6px; }
+  .fb-sent-sub { font-size: 13px; color: #888; }
+`;
+
+export default function Feedback() {
+  const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    const form = e.target;
+    const data = new FormData(form);
+    try {
+      await fetch("https://formsubmit.co/shabeebkaruvath@gmail.com", { method: "POST", body: data });
+      setSent(true);
+    } catch {
+      setSent(true); // still show success to avoid exposing errors
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="bg-white shadow-lg rounded-xl w-full max-w-md p-6 space-y-6 border border-gray-200">
-        <div className="flex items-center space-x-3 mb-4">
-          <MessageCircle className="text-gray-700" size={28} />
-          <h2 className="text-xl font-semibold text-gray-800">Share Your Feedback</h2>
+    <>
+      <style>{s}</style>
+      <div className="fb-root">
+        <div className="fb-card">
+          {sent ? (
+            <div className="fb-sent">
+              <div className="fb-sent-icon">✓</div>
+              <p className="fb-sent-text">Thanks for your feedback</p>
+              <p className="fb-sent-sub">We'll read it carefully.</p>
+            </div>
+          ) : (
+            <>
+              <h1 className="fb-title">Feedback</h1>
+              <p className="fb-sub">Share what's on your mind.</p>
+              <form onSubmit={handleSubmit}>
+                <label className="fb-label">Subject</label>
+                <input name="subject" type="text" className="fb-input" placeholder="What's this about?" />
+                <label className="fb-label">Message</label>
+                <textarea name="message" className="fb-textarea" placeholder="Tell us anything…" required />
+                <button type="submit" className="fb-submit" disabled={loading}>
+                  {loading ? "Sending…" : "Send"}
+                </button>
+              </form>
+            </>
+          )}
         </div>
-        <form className="space-y-4" action='https://formsubmit.co/shabeebkaruvath@gmail.com' method='POST'>
-          <label htmlFor="subject" className="sr-only">Subject</label>
-          <input
-            id="subject"
-            name="subject"
-            type="text"
-            placeholder="Subject"
-            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-500 focus:border-gray-500 transition-all duration-200 text-gray-700 bg-transparent placeholder-gray-400"
-          />
-          <label htmlFor="message" className="sr-only">Your Feedback</label>
-          <textarea
-            id="message"
-            name="message"
-            placeholder="Please share your thoughts with us..."
-            required
-           
-            className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-gray-500 focus:border-gray-500 transition-all duration-200 resize-y min-h-[150px] text-gray-700 bg-transparent placeholder-gray-400"
-          />
-         
-          <button
-            type="submit"
-            className="w-full bg-gray-800 text-white py-3 rounded-lg flex items-center justify-center space-x-2 hover:bg-gray-700 transition-colors duration-200"
-          >
-            <span>Submit</span>
-          </button>
-        </form>
       </div>
-    </div>
+    </>
   );
 }
-
-export default Feedback;
